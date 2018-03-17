@@ -79,3 +79,60 @@ func TestInsertAfterDeleteWithMerge(t *testing.T) {
 		t.Errorf("n.Ops and exp.Ops are not equal.\nn: %+v\n", *n.Ops[1].Insert)
 	}
 }
+
+func TestDelete(t *testing.T) {
+	n := New(nil)
+	n.Delete(0)
+
+	if len(n.Ops) != 0 {
+		t.Errorf("failed to create Delta with delete(0), got: %+v\n", n.Ops)
+	}
+}
+func TestDeletePositive(t *testing.T) {
+	n := New(nil)
+	n.Delete(10)
+
+	if len(n.Ops) != 1 {
+		t.Errorf("failed to create Delta with delete(10), got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Delete != 10 {
+		t.Errorf("failed to create Delta with delete(10), got: %+v\n", n.Ops)
+	}
+}
+
+func TestRetain(t *testing.T) {
+	n := New(nil)
+	n.Retain(0, nil)
+
+	if len(n.Ops) != 0 {
+		t.Errorf("failed to create Delta with retain(0), got: %+v\n", n.Ops)
+	}
+}
+
+func TestRetainPositive(t *testing.T) {
+	n := New(nil)
+	n.Retain(2, nil)
+
+	if len(n.Ops) != 1 {
+		t.Errorf("failed to create Delta with retain(2), got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Retain != 2 {
+		t.Errorf("failed to create Delta with retain(2), got: %+v\n", n.Ops)
+	}
+}
+func TestRetainPositiveAndAttrs(t *testing.T) {
+	n := New(nil)
+	attr := make(map[string]interface{})
+	attr["bold"] = true
+	n.Retain(2, attr)
+
+	if len(n.Ops) != 1 {
+		t.Errorf("failed to create Delta with retain(2, {bold: true}), got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Retain != 2 {
+		t.Errorf("failed to create Delta with retain(2, {bold: true}), got: %+v\n", n.Ops)
+	}
+	if n.Ops[0].Attributes["bold"] != true {
+		t.Errorf("failed to create Delta with retain(2, {bold: true}), got: %+v\n", n.Ops)
+	}
+}
