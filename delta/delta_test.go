@@ -136,3 +136,110 @@ func TestRetainPositiveAndAttrs(t *testing.T) {
 		t.Errorf("failed to create Delta with retain(2, {bold: true}), got: %+v\n", n.Ops)
 	}
 }
+
+func TestPush(t *testing.T) {
+	n := New(nil)
+	x := "test"
+	n.Push(Op{Insert: &x})
+	if len(n.Ops) != 1 {
+		t.Errorf("failed to Push({insert: 'test'}) to Delta, got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Insert != x {
+		t.Errorf("failed to Push to Delta, got: %+v\n", n.Ops)
+	}
+}
+func TestPushMultiDelete(t *testing.T) {
+	n := New(nil)
+	n.Delete(2)
+	x := 1
+	n.Push(Op{Delete: &x})
+	if len(n.Ops) != 1 {
+		t.Errorf("failed to Push({insert: 'test'}) to Delta, got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Delete != 3 {
+		t.Errorf("failed to Push to Delta, got: %+v\n", *n.Ops[0].Delete)
+	}
+}
+
+func TestPushMultiInsert(t *testing.T) {
+	n := New(nil)
+	n.Insert("Diego ", nil)
+	x := "Smith"
+	n.Push(Op{Insert: &x})
+	if len(n.Ops) != 1 {
+		t.Errorf("failed to Push({insert: 'test'}) to Delta, got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Insert != "Diego Smith" {
+		t.Errorf("failed to Push to Delta, got: %+v\n", *n.Ops[0].Insert)
+	}
+}
+func TestPushMultiInsertMathingAttrs(t *testing.T) {
+	n := New(nil)
+	attr := make(map[string]interface{})
+	attr["bold"] = true
+	n.Insert("Diego ", attr)
+	x := "Smith"
+	n.Push(Op{Insert: &x, Attributes: attr})
+	if len(n.Ops) != 1 {
+		t.Errorf("failed to Push({insert: 'test'}) to Delta, got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Insert != "Diego Smith" {
+		t.Errorf("failed to Push to Delta, got: %+v\n", *n.Ops[0].Insert)
+	}
+}
+
+func TestPushMultiInsertNonMathingAttrs(t *testing.T) {
+	n := New(nil)
+	attr1 := make(map[string]interface{})
+	attr1["bold"] = true
+	n.Insert("Diego ", attr1)
+	x := "Smith"
+	attr2 := make(map[string]interface{})
+	attr2["bold"] = false
+	n.Push(Op{Insert: &x, Attributes: attr2})
+	if len(n.Ops) != 2 {
+		t.Errorf("failed to Push multi insert, diff attributes, got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Insert != "Diego " {
+		t.Errorf("failed to Push multi insert, diff attributes, got: %+v\n", *n.Ops[0].Insert)
+	}
+	if *n.Ops[1].Insert != "Smith" {
+		t.Errorf("failed to Push multi insert, diff attributes, got: %+v\n", *n.Ops[1].Insert)
+	}
+}
+
+func TestPushMultiRetainMathingAttrs(t *testing.T) {
+	n := New(nil)
+	attr := make(map[string]interface{})
+	attr["bold"] = true
+	n.Retain(5, attr)
+	x := 3
+	n.Push(Op{Retain: &x, Attributes: attr})
+	if len(n.Ops) != 1 {
+		t.Errorf("failed to multi retain with matching attr, got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Retain != 8 {
+		t.Errorf("failed to multi retain with matching attr, got: %+v\n", *n.Ops[0].Retain)
+	}
+}
+
+func TestPushMultiRetainNonMathingAttrs(t *testing.T) {
+	n := New(nil)
+	attr1 := make(map[string]interface{})
+	attr1["bold"] = true
+	n.Retain(5, attr1)
+	x := 3
+	attr2 := make(map[string]interface{})
+	attr2["bold"] = false
+
+	n.Push(Op{Retain: &x, Attributes: attr2})
+	if len(n.Ops) != 2 {
+		t.Errorf("failed to multi retain without matching attr, expected 2 ops got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Retain != 5 {
+		t.Errorf("failed to multi retain without matching attr, expected 5, got: %+v\n", *n.Ops[0].Retain)
+	}
+	if *n.Ops[1].Retain != 3 {
+		t.Errorf("failed to multi retain without matching attr, expected 3, got: %+v\n", *n.Ops[1].Retain)
+	}
+}
