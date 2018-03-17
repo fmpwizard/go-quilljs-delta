@@ -63,3 +63,19 @@ func TestInsertAfterDelete(t *testing.T) {
 		t.Errorf("n.Ops and exp.Ops are not equal.\nn: %+v\nexp: %+v\n", n.Ops, exp.Ops)
 	}
 }
+
+func TestInsertAfterDeleteWithMerge(t *testing.T) {
+	n := New(nil)
+	n.Insert("a", nil).Delete(1).Insert("b", nil)
+	exp := New(nil)
+	exp.Insert("ab", nil).Delete(1)
+
+	if len(n.Ops) != 2 {
+		t.Errorf("failed to create Delta with delete and insert merge, got: %+v\n", n.Ops)
+	}
+	if *n.Ops[0].Insert != *exp.Ops[0].Insert {
+		t.Logf("n.Ops and exp.Ops are not equal.\nn: %+v\nexp: %+v\n", n.Ops, exp.Ops)
+		t.Errorf("n.Ops and exp.Ops are not equal.\nn: %+v\n", *n.Ops[0].Insert)
+		t.Errorf("n.Ops and exp.Ops are not equal.\nn: %+v\n", *n.Ops[1].Insert)
+	}
+}

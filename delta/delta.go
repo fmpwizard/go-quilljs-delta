@@ -1,5 +1,10 @@
 package delta
 
+import (
+	//"log"
+	"reflect"
+)
+
 // Delta is the main type representing a QuillJs delta
 type Delta struct {
 	Ops []Op
@@ -75,9 +80,14 @@ func (d *Delta) Retain(n int, attrs map[string]interface{}) *Delta {
 // Push adds the newOp Operation to the delta, but reorganizes the ops based on certain rules
 func (d *Delta) Push(newOp Op) *Delta {
 	idx := len(d.Ops)
-	lastOp := Op{}
+	var lastOp *Op
 	if idx > 0 {
-		lastOp = d.Ops[idx-1]
+		lastOp = &d.Ops[idx-1]
+	}
+	// if we don't have any ops, add the newOp as is
+	if lastOp == nil {
+		d.Ops = append(d.Ops, newOp)
+		return d
 	}
 	if !newOp.IsNil() {
 
@@ -92,8 +102,30 @@ func (d *Delta) Push(newOp Op) *Delta {
 		// always prefer to insert first
 		if lastOp.Delete != nil && newOp.Insert != nil {
 			idx--
-			if idx == 0 {
+			if idx < 1 {
 				d.Ops = append([]Op{newOp}, d.Ops...)
+				return d
+			}
+			lastOp = &d.Ops[idx-1]
+		}
+		if reflect.DeepEqual(newOp.Attributes, lastOp.Attributes) {
+			if newOp.Insert != nil && lastOp.Insert != nil {
+				mergedText := *lastOp.Insert + *newOp.Insert
+				d.Ops[idx-1] = Op{
+					Insert: &mergedText,
+				}
+				if newOp.Attributes != nil {
+					d.Ops[idx-1].Attributes = newOp.Attributes
+				}
+				return d
+			} else if newOp.Retain != nil && lastOp.Retain != nil {
+				x := *lastOp.Retain + *newOp.Retain
+				d.Ops[idx-1] = Op{
+					Retain: &x,
+				}
+				if newOp.Attributes != nil {
+					d.Ops[idx-1].Attributes = newOp.Attributes
+				}
 				return d
 			}
 		}
@@ -106,41 +138,3 @@ func (d *Delta) Push(newOp Op) *Delta {
 	}
 	return d
 }
-
-//  var index = this.ops.length;
-//  var lastOp = this.ops[index - 1];
-//  newOp = extend(true, {}, newOp);
-//  if (typeof lastOp === 'object') {
-//    if (typeof newOp['delete'] === 'number' && typeof lastOp['delete'] === 'number') {
-//      this.ops[index - 1] = { 'delete': lastOp['delete'] + newOp['delete'] };
-//      return this;
-//    }
-//    // Since it does not matter if we insert before or after deleting at the same index,
-//    // always prefer to insert first
-//    if (typeof lastOp['delete'] === 'number' && newOp.insert != null) {
-//      index -= 1;
-//      lastOp = this.ops[index - 1];
-//      if (typeof lastOp !== 'object') {
-//        this.ops.unshift(newOp);
-//        return this;
-//      }
-//    }
-//   // skip for now if (equal(newOp.attributes, lastOp.attributes)) {
-//   // skip for now   if (typeof newOp.insert === 'string' && typeof lastOp.insert === 'string') {
-//   // skip for now     this.ops[index - 1] = { insert: lastOp.insert + newOp.insert };
-//   // skip for now     if (typeof newOp.attributes === 'object') this.ops[index - 1].attributes = newOp.attributes
-//   // skip for now     return this;
-//   // skip for now   } else if (typeof newOp.retain === 'number' && typeof lastOp.retain === 'number') {
-//   // skip for now     this.ops[index - 1] = { retain: lastOp.retain + newOp.retain };
-//   // skip for now     if (typeof newOp.attributes === 'object') this.ops[index - 1].attributes = newOp.attributes
-//   // skip for now     return this;
-//   // skip for now   }
-//   // skip for now }
-//  }
-//  if (index === this.ops.length) {
-//    this.ops.push(newOp);
-//  } else {
-//    this.ops.splice(index, 0, newOp);
-//  }
-//  return this;
-//
