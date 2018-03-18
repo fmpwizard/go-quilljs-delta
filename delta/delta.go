@@ -138,3 +138,26 @@ func (d *Delta) Push(newOp Op) *Delta {
 	}
 	return d
 }
+
+// Chop removes the last retain operation if it doesn't have any attributes
+func (d *Delta) Chop() *Delta {
+	x := len(d.Ops)
+	if x == 1 {
+		return d
+	}
+	lastOp := d.Ops[x-1]
+	if lastOp.Retain != nil && lastOp.Attributes == nil {
+		d.Ops = d.Ops[:x-1]
+	}
+	return d
+}
+
+// Compose returns a Delta that is equivalent to applying the operations of own Delta, followed by another Delta.
+// func (d *Delta) Compose(other Delta) *Delta {
+// 	thisIter := d.Ops
+// 	otherIter := other.Ops
+// 	delta := New(nil)
+//
+//
+// 	return d
+// }
