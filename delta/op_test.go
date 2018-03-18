@@ -110,3 +110,153 @@ func TestAttrComposeRemoveMissingAttr(t *testing.T) {
 		t.Errorf("failed to compose attr map, got: %+v\n", AttrCompose(attr1, attr2, false))
 	}
 }
+
+func TestAttrDiffLeftNil(t *testing.T) {
+	format := make(map[string]interface{})
+	format["bold"] = true
+	format["color"] = "red"
+	if !reflect.DeepEqual(format, AttrDiff(nil, format)) {
+		t.Errorf("failed to diff attr map, got: %+v\n", AttrDiff(nil, format))
+	}
+}
+func TestAttrDiffRightNil(t *testing.T) {
+	format := make(map[string]interface{})
+	format["bold"] = true
+	format["color"] = "red"
+
+	expected := make(map[string]interface{})
+	expected["bold"] = nil
+	expected["color"] = nil
+
+	if !reflect.DeepEqual(expected, AttrDiff(format, nil)) {
+		t.Errorf("failed to diff attr map, got: %+v\n", AttrDiff(format, nil))
+	}
+}
+func TestAttrDiffSame(t *testing.T) {
+	format := make(map[string]interface{})
+	format["bold"] = true
+	format["color"] = "red"
+
+	if AttrDiff(format, format) != nil {
+		t.Errorf("failed to diff attr map, got: %+v\n", AttrDiff(format, format))
+	}
+}
+
+func TestAttrDiffAddFormat(t *testing.T) {
+	format := make(map[string]interface{})
+	format["bold"] = true
+	format["color"] = "red"
+
+	added := make(map[string]interface{})
+	added["bold"] = true
+	added["italic"] = true
+	added["color"] = "red"
+
+	expected := make(map[string]interface{})
+	expected["italic"] = true
+
+	if !reflect.DeepEqual(expected, AttrDiff(format, added)) {
+		t.Errorf("failed to diff attr map, got: %+v\n", AttrDiff(format, added))
+	}
+}
+func TestAttrDiffRemoveFormat(t *testing.T) {
+	format := make(map[string]interface{})
+	format["bold"] = true
+	format["color"] = "red"
+
+	removed := make(map[string]interface{})
+	removed["bold"] = true
+
+	expected := make(map[string]interface{})
+	expected["color"] = nil
+
+	if !reflect.DeepEqual(expected, AttrDiff(format, removed)) {
+		t.Errorf("failed to diff attr map, got: %+v\n", AttrDiff(format, removed))
+	}
+}
+
+func TestAttrDiffOverrideFormat(t *testing.T) {
+	format := make(map[string]interface{})
+	format["bold"] = true
+	format["color"] = "red"
+
+	overwritten := make(map[string]interface{})
+	overwritten["bold"] = true
+	overwritten["color"] = "blue"
+
+	expected := make(map[string]interface{})
+	expected["color"] = "blue"
+
+	if !reflect.DeepEqual(expected, AttrDiff(format, overwritten)) {
+		t.Errorf("failed to diff attr map, got: %+v\n", AttrDiff(format, overwritten))
+	}
+}
+
+func TestAttrTransformLeftNil(t *testing.T) {
+	left := make(map[string]interface{})
+	left["bold"] = true
+	left["color"] = "red"
+	left["font"] = nil
+
+	right := make(map[string]interface{})
+	right["font"] = "serif"
+	right["color"] = "blue"
+	right["italic"] = true
+
+	if !reflect.DeepEqual(left, AttrTransform(nil, left, false)) {
+		t.Errorf("failed to transform attr map, got: %+v\n", AttrTransform(nil, left, false))
+	}
+}
+func TestAttrTransformRightNil(t *testing.T) {
+	left := make(map[string]interface{})
+	left["bold"] = true
+	left["color"] = "red"
+	left["font"] = nil
+
+	right := make(map[string]interface{})
+	right["font"] = "serif"
+	right["color"] = "blue"
+	right["italic"] = true
+
+	if AttrTransform(left, nil, false) != nil {
+		t.Errorf("failed to transform attr map, got: %+v\n", AttrTransform(left, nil, false))
+	}
+}
+func TestAttrTransformBothtNil(t *testing.T) {
+	if AttrTransform(nil, nil, false) != nil {
+		t.Errorf("failed to transform attr map, got: %+v\n", AttrTransform(nil, nil, false))
+	}
+}
+func TestAttrTransformWithPriority(t *testing.T) {
+	left := make(map[string]interface{})
+	left["bold"] = true
+	left["color"] = "red"
+	left["font"] = nil
+
+	right := make(map[string]interface{})
+	right["font"] = "serif"
+	right["color"] = "blue"
+	right["italic"] = true
+
+	expected := make(map[string]interface{})
+	expected["italic"] = true
+
+	if !reflect.DeepEqual(expected, AttrTransform(left, right, true)) {
+		t.Errorf("failed to transform attr map, got: %+v\n", AttrTransform(left, right, true))
+	}
+}
+func TestAttrTransformWithoutPriority(t *testing.T) {
+	left := make(map[string]interface{})
+	left["bold"] = true
+	left["color"] = "red"
+	left["font"] = nil
+
+	right := make(map[string]interface{})
+	right["font"] = "serif"
+	right["color"] = "blue"
+	right["italic"] = true
+
+	if !reflect.DeepEqual(right, AttrTransform(left, right, false)) {
+		t.Errorf("failed to transform attr map, got: %+v\n", AttrTransform(left, right, false))
+	}
+}
