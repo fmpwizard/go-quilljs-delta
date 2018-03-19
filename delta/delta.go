@@ -28,8 +28,8 @@ func (o *Op) IsNil() bool {
 }
 
 // New creates a new Delta with the given ops
-func New(ops []Op) Delta {
-	return Delta{
+func New(ops []Op) *Delta {
+	return &Delta{
 		Ops: ops,
 	}
 }

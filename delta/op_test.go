@@ -260,3 +260,34 @@ func TestAttrTransformWithoutPriority(t *testing.T) {
 		t.Errorf("failed to transform attr map, got: %+v\n", AttrTransform(left, right, false))
 	}
 }
+
+func TestAttrLengthDelete(t *testing.T) {
+	a := 5
+	r := AttrLength(Op{
+		Delete: &a,
+	})
+
+	if r != 5 {
+		t.Error("failed to get length 5 for delete")
+	}
+}
+func TestAttrLengthRetain(t *testing.T) {
+	a := 4
+	r := AttrLength(Op{
+		Retain: &a,
+	})
+
+	if r != 4 {
+		t.Error("failed to get length 4 for retain")
+	}
+}
+func TestAttrLengthInsert(t *testing.T) {
+	a := "text"
+	r := AttrLength(Op{
+		Insert: &a,
+	})
+
+	if r != 4 {
+		t.Error("failed to get length 4 for insert")
+	}
+}
