@@ -2,6 +2,7 @@ package delta
 
 import (
 	//"log"
+	"math"
 	"reflect"
 )
 
@@ -153,11 +154,38 @@ func (d *Delta) Chop() *Delta {
 }
 
 // Compose returns a Delta that is equivalent to applying the operations of own Delta, followed by another Delta.
-// func (d *Delta) Compose(other Delta) *Delta {
-// 	thisIter := d.Ops
-// 	otherIter := other.Ops
-// 	delta := New(nil)
-//
-//
-// 	return d
-// }
+func (d *Delta) Compose(other Delta) *Delta {
+	thisIter := OpsIterator(d.Ops)
+	otherIter := OpsIterator(other.Ops)
+	delta := New(nil)
+	for thisIter.HasNext() || otherIter.HasNext() {
+		if otherIter.PeekType() == "insert" {
+			delta.Push(otherIter.Next(math.MaxInt64))
+		} else if thisIter.PeekType() == "delete" {
+			delta.Push(thisIter.Next(math.MaxInt64))
+		} else {
+			length := int(math.Min(float64(thisIter.PeekLength()), float64(otherIter.PeekLength())))
+			thisOp := thisIter.Next(math.MaxInt64)
+			otherOp := otherIter.Next(math.MaxInt64)
+			if otherOp.Retain != nil {
+				newOp := Op{}
+				if thisOp.Retain != nil {
+					newOp.Retain = &length
+				} else {
+					newOp.Insert = thisOp.Insert
+				}
+				// Preserve null when composing with a retain, otherwise remove it for inserts
+				attributes := AttrCompose(thisOp.Attributes, otherOp.Attributes, thisOp.Retain != nil)
+				if attributes != nil {
+					newOp.Attributes = attributes
+				}
+				delta.Push(newOp)
+				// Other op should be delete, we could be an insert or retain
+				// Insert + delete cancels out
+			} else if otherOp.Delete != nil && thisOp.Retain != nil {
+				delta.Push(otherOp)
+			}
+		}
+	}
+	return d.Chop()
+}
