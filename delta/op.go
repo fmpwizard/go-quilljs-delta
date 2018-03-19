@@ -99,13 +99,13 @@ func AttrTransform(a, b map[string]interface{}, priority bool) map[string]interf
 	return nil
 }
 
-// AttrIterator returns an Iterator wrapping the ops
-func AttrIterator(ops []Op) Iterator {
+// OpsIterator returns an Iterator wrapping the ops
+func OpsIterator(ops []Op) Iterator {
 	return NewIterator(ops)
 }
 
-// AttrLength retuns the length of the string insert, or the numeric value of Delete or Retain
-func AttrLength(op Op) int {
+// OpsLength retuns the length of the string insert, or the numeric value of Delete or Retain
+func OpsLength(op Op) int {
 	if op.Delete != nil {
 		return *op.Delete
 	}

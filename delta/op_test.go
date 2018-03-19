@@ -263,7 +263,7 @@ func TestAttrTransformWithoutPriority(t *testing.T) {
 
 func TestAttrLengthDelete(t *testing.T) {
 	a := 5
-	r := AttrLength(Op{
+	r := OpsLength(Op{
 		Delete: &a,
 	})
 
@@ -273,7 +273,7 @@ func TestAttrLengthDelete(t *testing.T) {
 }
 func TestAttrLengthRetain(t *testing.T) {
 	a := 4
-	r := AttrLength(Op{
+	r := OpsLength(Op{
 		Retain: &a,
 	})
 
@@ -283,7 +283,7 @@ func TestAttrLengthRetain(t *testing.T) {
 }
 func TestAttrLengthInsert(t *testing.T) {
 	a := "text"
-	r := AttrLength(Op{
+	r := OpsLength(Op{
 		Insert: &a,
 	})
 

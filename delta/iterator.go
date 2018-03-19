@@ -21,20 +21,9 @@ type Iterator struct {
 	Offset int
 }
 
-// PeekType tells you the type of operation at the current Index
-func (x *Iterator) PeekType() string {
-	if len(x.Ops) > x.Index { //TODO may be a bug getting the last item (highest index)
-		if x.Ops[x.Index].Delete != nil {
-			return "delete"
-		}
-		if x.Ops[x.Index].Retain != nil {
-			return "retain"
-		}
-		if x.Ops[x.Index].Insert != nil {
-			return "insert"
-		}
-	}
-	return "retain"
+// HasNext returns true if we have more ops
+func (x *Iterator) HasNext() bool {
+	return x.PeekLength() < math.MaxInt64
 }
 
 // Next moves the index on item
@@ -49,7 +38,7 @@ func (x *Iterator) Next(length int) Op {
 	}
 	nextOp := x.Ops[x.Index]
 	offset := x.Offset
-	opLength := AttrLength(nextOp)
+	opLength := OpsLength(nextOp)
 	if length >= opLength-offset {
 		length = opLength - offset
 		x.Index++
@@ -80,4 +69,33 @@ func (x *Iterator) Next(length int) Op {
 		retOp.Insert = &str
 	}
 	return retOp
+}
+
+// Peek returns the current Op without advancing the index
+func (x *Iterator) Peek() Op {
+	return x.Ops[x.Index]
+}
+
+// PeekLength returns the length of the Op at the current index
+func (x *Iterator) PeekLength() int {
+	if len(x.Ops) > x.Index {
+		return OpsLength(x.Ops[x.Index]) - x.Offset
+	}
+	return math.MaxInt64
+}
+
+// PeekType tells you the type of operation at the current Index
+func (x *Iterator) PeekType() string {
+	if len(x.Ops) > x.Index { //TODO may be a bug getting the last item (highest index)
+		if x.Ops[x.Index].Delete != nil {
+			return "delete"
+		}
+		if x.Ops[x.Index].Retain != nil {
+			return "retain"
+		}
+		if x.Ops[x.Index].Insert != nil {
+			return "insert"
+		}
+	}
+	return "retain"
 }
