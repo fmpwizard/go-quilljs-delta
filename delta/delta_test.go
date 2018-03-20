@@ -508,3 +508,53 @@ func TestChop(t *testing.T) {
 		t.Errorf("expected 1 op but got %+v\n", ret.Ops)
 	}
 }
+func TestConcatEmptyDelta(t *testing.T) {
+	a := New(nil).Insert("Test", nil)
+	b := New(nil)
+	ret := a.Concat(*b)
+	if len(ret.Ops) != 1 {
+		t.Errorf("expected 1 op but got %+v\n", ret.Ops)
+	}
+	if *ret.Ops[0].Insert != "Test" {
+		t.Errorf("expected Insert op but got %+v\n", ret.Ops)
+	}
+}
+func TestConcatUnmergable(t *testing.T) {
+	a := New(nil).Insert("Test", nil)
+	attr1 := make(map[string]interface{})
+	attr1["bold"] = true
+	c := New(nil).Insert("!", attr1)
+
+	ret := a.Concat(*c)
+	if len(ret.Ops) != 2 {
+		t.Errorf("expected 2 ops but got %+v\n", ret.Ops)
+	}
+
+	if *ret.Ops[0].Insert != "Test" {
+		t.Errorf("expected Insert op but got %+v\n", ret.Ops)
+	}
+	if *ret.Ops[1].Insert != "!" {
+		t.Errorf("expected Insert op but got:\n%+v\n", ret.Ops)
+	}
+	if ret.Ops[1].Attributes["bold"] != true {
+		t.Errorf("expeted 'bold': true but got: \n%+v\n", ret.Ops[1].Attributes)
+	}
+}
+func TestConcatMergable(t *testing.T) {
+	attr1 := make(map[string]interface{})
+	attr1["bold"] = true
+	a := New(nil).Insert("Test", attr1)
+	c := New(nil).Insert("!", attr1)
+
+	ret := a.Concat(*c)
+	if len(ret.Ops) != 1 {
+		t.Errorf("expected 1 op but got %+v\n", ret.Ops)
+	}
+
+	if *ret.Ops[0].Insert != "Test!" {
+		t.Errorf("expected Insert op but got %+v\n", ret.Ops)
+	}
+	if ret.Ops[0].Attributes["bold"] != true {
+		t.Errorf("expeted 'bold': true but got: \n%+v\n", ret.Ops[0].Attributes)
+	}
+}

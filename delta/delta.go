@@ -196,3 +196,13 @@ func (d *Delta) Compose(other Delta) *Delta {
 	}
 	return delta.Chop()
 }
+
+// Concat concatenates two Deltas
+func (d *Delta) Concat(other Delta) *Delta {
+	delta := New(d.Ops)
+	if len(other.Ops) > 0 {
+		delta.Push(other.Ops[0])
+		delta.Ops = append(delta.Ops, other.Ops[1:]...)
+	}
+	return delta
+}
