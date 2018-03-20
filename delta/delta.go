@@ -206,3 +206,22 @@ func (d *Delta) Concat(other Delta) *Delta {
 	}
 	return delta
 }
+
+// TransformPosition returns the new index after applying a list of Ops
+func (d *Delta) TransformPosition(index int, priority bool) int {
+	thisIter := OpsIterator(d.Ops)
+	offset := 0
+	for thisIter.HasNext() && offset <= index {
+		length := thisIter.PeekLength()
+		nextType := thisIter.PeekType()
+		thisIter.Next(math.MaxInt64)
+		if nextType == "delete" {
+			index -= int(math.Min(float64(length), float64(index-offset)))
+			continue
+		} else if nextType == "insert" && (offset < index || !priority) {
+			index += length
+		}
+		offset += length
+	}
+	return index
+}
