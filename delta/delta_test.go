@@ -807,30 +807,48 @@ func TestTransformAlternatingEdits(t *testing.T) {
 	if *x.Ops[4].Insert != "ow" {
 		t.Errorf("expected 'insert ow'  but got %+v\n", x)
 	}
+
+	x = b.Transform(*a, false)
+	if len(x.Ops) != 3 {
+		t.Errorf("expected '3' op but got %+v\n", x)
+	}
+	if *x.Ops[0].Retain != 2 {
+		t.Errorf("expected 'retain 2'  but got %+v\n", x)
+	}
+	if *x.Ops[1].Insert != "si" {
+		t.Errorf("expected 'insert si'  but got %+v\n", x)
+	}
+	if *x.Ops[2].Delete != 1 {
+		t.Errorf("expected 'delete 1'  but got %+v\n", x)
+	}
+}
+func TestTransformConflictingAppends(t *testing.T) {
+
+	a := New(nil).Retain(3, nil).Insert("aa", nil)
+	b := New(nil).Retain(3, nil).Insert("bb", nil)
+
+	x := a.Transform(*b, true)
+	if len(x.Ops) != 2 {
+		t.Errorf("expected '2' ops but got %+v\n", x)
+	}
+	if *x.Ops[0].Retain != 5 {
+		t.Errorf("expected 'retain 5'  but got %+v\n", x)
+	}
+	if *x.Ops[1].Insert != "bb" {
+		t.Errorf("expected 'insert bb'  but got %+v\n", x)
+	}
+	x = b.Transform(*a, false)
+	if len(x.Ops) != 2 {
+		t.Errorf("expected '2' ops but got %+v\n", x)
+	}
+	if *x.Ops[0].Retain != 3 {
+		t.Errorf("expected 'retain 3'  but got %+v\n", x)
+	}
+	if *x.Ops[1].Insert != "aa" {
+		t.Errorf("expected 'insert aa'  but got %+v\n", x)
+	}
 }
 
-//
-//  it('alternating edits', function () {
-//    var a1 = new Delta().retain(2).insert('si').delete(5);
-//    var b1 = new Delta().retain(1).insert('e').delete(5).retain(1).insert('ow');
-//    var a2 = new Delta(a1);
-//    var b2 = new Delta(b1);
-//    var expected1 = new Delta().retain(1).insert('e').delete(1).retain(2).insert('ow');
-//    var expected2 = new Delta().retain(2).insert('si').delete(1);
-//    expect(a1.transform(b1, false)).toEqual(expected1);
-//    expect(b2.transform(a2, false)).toEqual(expected2);
-//  });
-//
-//  it('conflicting appends', function () {
-//    var a1 = new Delta().retain(3).insert('aa');
-//    var b1 = new Delta().retain(3).insert('bb');
-//    var a2 = new Delta(a1);
-//    var b2 = new Delta(b1);
-//    var expected1 = new Delta().retain(5).insert('bb');
-//    var expected2 = new Delta().retain(3).insert('aa');
-//    expect(a1.transform(b1, true)).toEqual(expected1);
-//    expect(b2.transform(a2, false)).toEqual(expected2);
-//  });
 //
 //  it('prepend + append', function () {
 //    var a1 = new Delta().insert('aa');
