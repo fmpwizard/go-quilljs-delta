@@ -445,3 +445,66 @@ func TestDeltaComposeInsertDeleteOrder(t *testing.T) {
 		t.Errorf("expected 'HelXo' but got '%+v'\n", *xb[0].Insert)
 	}
 }
+func TestDeltaComposeDeleteEntireText(t *testing.T) {
+	a := New(nil).Retain(4, nil).Insert("Hello", nil)
+	b := New(nil).Delete(9)
+
+	x := a.Compose(*b).Ops
+	if *x[0].Delete != 4 {
+		t.Errorf("expected '4' but got '%+v'\n", *x[0].Delete)
+	}
+
+}
+func TestDeltaComposeRetainExtra(t *testing.T) {
+	attr1 := make(map[string]interface{})
+	attr1["bold"] = true
+	attr2 := make(map[string]interface{})
+	attr2["bold"] = nil
+	a := New(nil).Insert("A", attr1)
+	b := New(nil).Retain(1, attr2)
+
+	x := a.Compose(*b).Ops
+	if *x[0].Insert != "A" {
+		t.Errorf("expected 'A' but got '%+v'\n", *x[0].Insert)
+	}
+	if x[0].Attributes != nil {
+		t.Errorf("expected 'nil' attr but got '%+v'\n", x[0].Attributes)
+	}
+}
+func TestDeltaComposeImmutability(t *testing.T) {
+	attr1 := make(map[string]interface{})
+	attr1["bold"] = true
+	attr2 := make(map[string]interface{})
+	attr2["color"] = "red"
+	a1 := New(nil).Insert("Test", attr1)
+	b1 := New(nil).Retain(1, attr2).Delete(2)
+
+	attr3 := make(map[string]interface{})
+	attr3["color"] = "red"
+	attr3["bold"] = true
+
+	x := a1.Compose(*b1).Ops
+	if *x[0].Insert != "T" {
+		t.Errorf("expected 'T' but got '%+v'\n", *x[0].Insert)
+	}
+	if *x[1].Insert != "t" {
+		t.Errorf("expected 't' but got '%+v'\n", *x[1].Insert)
+	}
+	if x[0].Attributes["color"] != "red" {
+		t.Errorf("expected 'color: red' attr but got '%+v'\n", x[0].Attributes)
+	}
+	if x[0].Attributes["bold"] != true {
+		t.Errorf("expected 'bold: true' attr but got '%+v'\n", x[0].Attributes)
+	}
+	if len(x[0].Attributes) != 2 {
+		t.Errorf("expected '2' attrs but got '%+v'\n", x[0].Attributes)
+	}
+}
+
+func TestChop(t *testing.T) {
+	x := New(nil).Insert("a", nil).Insert("b", nil).Insert("c", nil).Retain(1, nil)
+	ret := x.Chop()
+	if len(ret.Ops) != 1 {
+		t.Errorf("expected 1 op but got %+v\n", ret.Ops)
+	}
+}
