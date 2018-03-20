@@ -1,6 +1,7 @@
 package delta
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -161,6 +162,26 @@ func TestPushMultiDelete(t *testing.T) {
 	}
 }
 
+func TestPushRetainDeleteInsert(t *testing.T) {
+	a := New(nil).Retain(3, nil).Delete(2).Insert("X", nil)
+	b := New(nil).Retain(3, nil).Insert("X", nil).Delete(2)
+
+	if len(a.Ops) != 3 {
+		t.Errorf("expcted 3 ops, got: %+v\n", a.Ops)
+	}
+	if *a.Ops[2].Delete != 2 {
+		t.Errorf("expected delete action, got %+v\n", a.Ops)
+	}
+
+	if len(b.Ops) != 3 {
+		t.Errorf("expcted 3 ops, got: %+v\n", b.Ops)
+	}
+	if *b.Ops[2].Delete != 2 {
+		t.Errorf("expected delete action, got %+v\n", b.Ops)
+	}
+
+}
+
 func TestPushMultiInsert(t *testing.T) {
 	n := New(nil)
 	n.Insert("Diego ", nil)
@@ -241,5 +262,186 @@ func TestPushMultiRetainNonMathingAttrs(t *testing.T) {
 	}
 	if *n.Ops[1].Retain != 3 {
 		t.Errorf("failed to multi retain without matching attr, expected 3, got: %+v\n", *n.Ops[1].Retain)
+	}
+}
+
+func TestDeltaComposeTwoInsert(t *testing.T) {
+	a := New(nil).Insert("A", nil)
+	b := New(nil).Insert("B", nil)
+	expected := New(nil).Insert("B", nil).Insert("A", nil)
+	x := a.Compose(*b).Ops
+
+	if *x[0].Insert != *expected.Ops[0].Insert {
+		t.Errorf("expected %+v but got %+v\n", *expected.Ops[0].Insert, *x[0].Insert)
+	}
+}
+func TestDeltaComposeInsertRetain(t *testing.T) {
+	a := New(nil).Insert("A", nil)
+	attr1 := make(map[string]interface{})
+	attr1["bold"] = true
+	attr1["color"] = "red"
+	attr1["font"] = nil
+
+	attr2 := make(map[string]interface{})
+	attr2["bold"] = true
+	attr2["color"] = "red"
+
+	b := New(nil).Retain(1, attr1)
+	expected := New(nil).Insert("A", attr2)
+	x := a.Compose(*b).Ops
+
+	if *x[0].Insert != *expected.Ops[0].Insert {
+		t.Errorf("expected %+v but got %+v\n", *expected.Ops[0].Insert, *x[0].Insert)
+	}
+
+	if len(x[0].Attributes) != 2 {
+		t.Errorf("expected 2 entries but got %+v\n", x[0].Attributes)
+	}
+}
+func TestDeltaComposeInsertDelete(t *testing.T) {
+	a := New(nil).Insert("A", nil)
+	b := New(nil).Delete(1)
+
+	x := a.Compose(*b).Ops
+
+	if len(x) != 0 {
+		t.Errorf("expected 0 entries but got %+v\n", x)
+	}
+}
+func TestDeltaComposeDeleteInsert(t *testing.T) {
+	a := New(nil).Insert("A", nil)
+	b := New(nil).Delete(1)
+	expected := New(nil).Insert("A", nil).Delete(1)
+	x := b.Compose(*a).Ops
+
+	if *expected.Ops[0].Insert != *x[0].Insert {
+		t.Errorf("expected '%+v' but got '%+v'\n", *expected.Ops[0].Insert, *x[0].Insert)
+	}
+	if *expected.Ops[1].Delete != *x[1].Delete {
+		t.Errorf("expected '%+v' but got '%+v'\n", *expected.Ops[0].Delete, *x[0].Delete)
+	}
+}
+func TestDeltaComposeDeleteRetain(t *testing.T) {
+	a := New(nil).Delete(1)
+	attr1 := make(map[string]interface{})
+	attr1["bold"] = true
+	attr1["color"] = "red"
+
+	b := New(nil).Retain(1, attr1)
+	expected := New(nil).Delete(1).Retain(1, attr1)
+	x := a.Compose(*b).Ops
+
+	if *x[0].Delete != *expected.Ops[0].Delete || *x[0].Delete != 1 {
+		t.Errorf("expected %+v but got %+v\n", *expected.Ops[0].Delete, *x[0].Delete)
+	}
+
+	if len(x[1].Attributes) != 2 {
+		t.Errorf("expected 2 entries but got %+v\n", x[1].Attributes)
+	}
+}
+func TestDeltaComposeDeleteDelete(t *testing.T) {
+	a := New(nil).Delete(1)
+	b := New(nil).Delete(1)
+	expected := New(nil).Delete(2)
+	x := a.Compose(*b).Ops
+
+	if *x[0].Delete != *expected.Ops[0].Delete || *x[0].Delete != 2 {
+		t.Errorf("expected %+v but got %+v\n", *expected.Ops[0].Delete, *x[0].Delete)
+	}
+
+	if len(x) != 1 {
+		t.Errorf("expected 1 entries but got %+v\n", x)
+	}
+}
+
+func TestDeltaComposeRetainInsert(t *testing.T) {
+	attr1 := make(map[string]interface{})
+	attr1["color"] = "blue"
+	a := New(nil).Retain(1, attr1)
+	b := New(nil).Insert("B", nil)
+
+	expected := New(nil).Insert("B", nil).Retain(1, attr1)
+	x := a.Compose(*b).Ops
+
+	if *x[0].Insert != *expected.Ops[0].Insert || *x[0].Insert != "B" {
+		t.Errorf("expected %+v but got %+v\n", *expected.Ops[0].Insert, *x[0].Insert)
+	}
+
+	if len(x[1].Attributes) != 1 {
+		t.Errorf("expected 1 entry but got %+v\n", x[1].Attributes)
+	}
+}
+func TestDeltaComposeRetainRetain(t *testing.T) {
+	attr1 := make(map[string]interface{})
+	attr1["color"] = "blue"
+	a := New(nil).Retain(1, attr1)
+	attr2 := make(map[string]interface{})
+	attr2["color"] = "red"
+	attr2["font"] = nil
+	attr2["bold"] = true
+	b := New(nil).Retain(1, attr2)
+
+	attr3 := make(map[string]interface{})
+	attr3["color"] = "red"
+	attr3["font"] = nil
+	attr3["bold"] = true
+	expected := New(nil).Retain(1, attr3)
+	x := a.Compose(*b).Ops
+
+	if *x[0].Retain != *expected.Ops[0].Retain || *x[0].Retain != 1 {
+		t.Errorf("expected %+v but got %+v\n", *expected.Ops[0].Retain, *x[0].Retain)
+	}
+
+	if len(x[0].Attributes) != 3 {
+		t.Errorf("expected 3 entry but got %+v\n", x[0].Attributes)
+	}
+	if !reflect.DeepEqual(x[0].Attributes, expected.Ops[0].Attributes) {
+		t.Errorf("wrong attributes, got: %+v\n", x[0].Attributes)
+	}
+}
+
+func TestDeltaComposeRetainDelete(t *testing.T) {
+	attr1 := make(map[string]interface{})
+	attr1["color"] = "blue"
+	a := New(nil).Retain(1, attr1)
+	b := New(nil).Delete(1)
+
+	expected := New(nil).Delete(1)
+	x := a.Compose(*b).Ops
+
+	if *x[0].Delete != *expected.Ops[0].Delete || *x[0].Delete != 1 {
+		t.Errorf("expected %+v but got %+v\n", *expected.Ops[0].Delete, *x[0].Delete)
+	}
+
+	if len(x[0].Attributes) != 0 {
+		t.Errorf("expected 0 entries but got %+v\n", x[0].Attributes)
+	}
+	if !reflect.DeepEqual(x[0].Attributes, expected.Ops[0].Attributes) {
+		t.Errorf("wrong attributes, got: %+v\n", x[0].Attributes)
+	}
+}
+
+func TestDeltaComposeInsertInMiddle(t *testing.T) {
+	a := New(nil).Insert("Hello", nil)
+	b := New(nil).Retain(3, nil).Insert("X", nil)
+	x := a.Compose(*b).Ops
+	if *x[0].Insert != "HelXlo" {
+		t.Errorf("expected 'HelXlo' but got %+v\n", *x[0].Insert)
+	}
+}
+func TestDeltaComposeInsertDeleteOrder(t *testing.T) {
+	a := New(nil).Insert("Hello", nil)
+	b := New(nil).Insert("Hello", nil)
+
+	insertFirst := New(nil).Retain(3, nil).Insert("X", nil).Delete(1)
+	deleteFirst := New(nil).Retain(3, nil).Delete(1).Insert("X", nil)
+
+	xa := a.Compose(*insertFirst).Ops
+	if *xa[0].Insert != "HelXo" {
+		t.Errorf("expected 'HelXo' but got '%+v'\n", *xa[0].Insert)
+	}
+	xb := b.Compose(*deleteFirst).Ops
+	if *xb[0].Insert != "HelXo" {
+		t.Errorf("expected 'HelXo' but got '%+v'\n", *xb[0].Insert)
 	}
 }

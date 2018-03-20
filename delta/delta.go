@@ -134,8 +134,14 @@ func (d *Delta) Push(newOp Op) *Delta {
 	if idx == len(d.Ops) {
 		d.Ops = append(d.Ops, newOp)
 	} else {
-		x := append(d.Ops[:idx], newOp)
-		d.Ops = append(x, d.Ops[idx+1:]...)
+		// expand the slice, don't worry about the last element, it will be overriden on the next line
+		d.Ops = append(d.Ops, Op{})
+		// copy the min of either src or dst elements from the secon part to the first parameter
+		// see https://www.reddit.com/r/golang/comments/3z91f1/can_someone_explain_inserting_into_a_slice_with/
+		// for mroe info, specialy the playground example
+		copy(d.Ops[idx+1:], d.Ops[idx:])
+		// finally, insert our desired element at idx position
+		d.Ops[idx] = newOp
 	}
 	return d
 }
@@ -143,7 +149,7 @@ func (d *Delta) Push(newOp Op) *Delta {
 // Chop removes the last retain operation if it doesn't have any attributes
 func (d *Delta) Chop() *Delta {
 	x := len(d.Ops)
-	if x == 1 {
+	if x <= 1 {
 		return d
 	}
 	lastOp := d.Ops[x-1]
@@ -157,6 +163,7 @@ func (d *Delta) Chop() *Delta {
 func (d *Delta) Compose(other Delta) *Delta {
 	thisIter := OpsIterator(d.Ops)
 	otherIter := OpsIterator(other.Ops)
+	//log.Printf("ss %+v\n", *other.Ops[0].Retain)
 	delta := New(nil)
 	for thisIter.HasNext() || otherIter.HasNext() {
 		if otherIter.PeekType() == "insert" {
@@ -165,8 +172,8 @@ func (d *Delta) Compose(other Delta) *Delta {
 			delta.Push(thisIter.Next(math.MaxInt64))
 		} else {
 			length := int(math.Min(float64(thisIter.PeekLength()), float64(otherIter.PeekLength())))
-			thisOp := thisIter.Next(math.MaxInt64)
-			otherOp := otherIter.Next(math.MaxInt64)
+			thisOp := thisIter.Next(length)
+			otherOp := otherIter.Next(length)
 			if otherOp.Retain != nil {
 				newOp := Op{}
 				if thisOp.Retain != nil {
@@ -187,5 +194,5 @@ func (d *Delta) Compose(other Delta) *Delta {
 			}
 		}
 	}
-	return d.Chop()
+	return delta.Chop()
 }
