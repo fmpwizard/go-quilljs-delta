@@ -1,4 +1,4 @@
-// Package delta is a port of quill's Delta package and implements Operational Transformations
+// Package delta is a port of quill's Delta package and implements Operational Transformations.
 // The idea behind it is to provide a Go backend to the Quill editor
 package delta
 

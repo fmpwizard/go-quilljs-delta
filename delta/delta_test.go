@@ -848,37 +848,43 @@ func TestTransformConflictingAppends(t *testing.T) {
 		t.Errorf("expected 'insert aa'  but got %+v\n", x)
 	}
 }
+func TestTransformPrependAppend(t *testing.T) {
 
-//
-//  it('prepend + append', function () {
-//    var a1 = new Delta().insert('aa');
-//    var b1 = new Delta().retain(3).insert('bb');
-//    var expected1 = new Delta().retain(5).insert('bb');
-//    var a2 = new Delta(a1);
-//    var b2 = new Delta(b1);
-//    var expected2 = new Delta().insert('aa');
-//    expect(a1.transform(b1, false)).toEqual(expected1);
-//    expect(b2.transform(a2, false)).toEqual(expected2);
-//  });
-//
-//  it('trailing deletes with differing lengths', function () {
-//    var a1 = new Delta().retain(2).delete(1);
-//    var b1 = new Delta().delete(3);
-//    var expected1 = new Delta().delete(2);
-//    var a2 = new Delta(a1);
-//    var b2 = new Delta(b1);
-//    var expected2 = new Delta();
-//    expect(a1.transform(b1, false)).toEqual(expected1);
-//    expect(b2.transform(a2, false)).toEqual(expected2);
-//  });
-//
-//  it('immutability', function () {
-//    var a1 = new Delta().insert('A');
-//    var a2 = new Delta().insert('A');
-//    var b1 = new Delta().insert('B');
-//    var b2 = new Delta().insert('B');
-//    var expected = new Delta().retain(1).insert('B');
-//    expect(a1.transform(b1, true)).toEqual(expected);
-//    expect(a1).toEqual(a2);
-//    expect(b1).toEqual(b2);
-//  });
+	a := New(nil).Insert("aa", nil)
+	b := New(nil).Retain(3, nil).Insert("bb", nil)
+
+	x := a.Transform(*b, false)
+	if len(x.Ops) != 2 {
+		t.Errorf("expected '2' ops but got %+v\n", x)
+	}
+	if *x.Ops[0].Retain != 5 {
+		t.Errorf("expected 'retain 5' but got %+v\n", x)
+	}
+	if *x.Ops[1].Insert != "bb" {
+		t.Errorf("expected 'insert bb' but got %+v\n", x)
+	}
+	x = b.Transform(*a, false)
+	if len(x.Ops) != 1 {
+		t.Errorf("expected '1' op but got %+v\n", x)
+	}
+	if *x.Ops[0].Insert != "aa" {
+		t.Errorf("expected 'insert aa' but got %+v\n", x)
+	}
+}
+func TestTransformTrailingDeletesWithDifferingLengths(t *testing.T) {
+
+	a := New(nil).Retain(2, nil).Delete(1)
+	b := New(nil).Delete(3)
+
+	x := a.Transform(*b, false)
+	if len(x.Ops) != 1 {
+		t.Errorf("expected '1' op but got %+v\n", x)
+	}
+	if *x.Ops[0].Delete != 2 {
+		t.Errorf("expected 'delete 2' but got %+v\n", x)
+	}
+	x = b.Transform(*a, false)
+	if len(x.Ops) != 0 {
+		t.Errorf("expected '0' ops but got %+v\n", x)
+	}
+}
