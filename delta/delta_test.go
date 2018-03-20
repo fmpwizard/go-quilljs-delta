@@ -508,6 +508,14 @@ func TestChop(t *testing.T) {
 		t.Errorf("expected 1 op but got %+v\n", ret.Ops)
 	}
 }
+func TestChopRetainRetain(t *testing.T) {
+	x := New(nil).Retain(1, nil).Retain(1, nil)
+	ret := x.Chop()
+	if len(ret.Ops) != 0 {
+		t.Errorf("expected '0' ops but got %+v\n", ret.Ops)
+	}
+}
+
 func TestConcatEmptyDelta(t *testing.T) {
 	a := New(nil).Insert("Test", nil)
 	b := New(nil)
@@ -616,3 +624,243 @@ func TestTransformPositionDeleteBeforeAndDeleteAcrossPos(t *testing.T) {
 		t.Error("expected 1 but got ", x)
 	}
 }
+
+func TestTransformInsertInsert(t *testing.T) {
+	a1 := New(nil).Insert("A", nil)
+	b1 := New(nil).Insert("B", nil)
+	a2 := New(a1.Ops)
+	b2 := New(b1.Ops)
+	x1 := a1.Transform(*b1, true)
+	if *x1.Ops[0].Retain != 1 {
+		t.Errorf("expected 1 but got %+v\n", x1)
+	}
+	if *x1.Ops[1].Insert != "B" {
+		t.Errorf("expected 'B' but got %+v\n", x1)
+	}
+
+	x2 := a2.Transform(*b2, false)
+	if len(x2.Ops) != 1 {
+		t.Errorf("expected 1 op but got %+v\n", x2)
+	}
+	if *x2.Ops[0].Insert != "B" {
+		t.Errorf("expected 'B' but got %+v\n", x2)
+	}
+}
+func TestTransformInsertRetain(t *testing.T) {
+	attr1 := make(map[string]interface{})
+	attr1["bold"] = true
+	attr1["color"] = "red"
+	a := New(nil).Insert("A", nil)
+	b := New(nil).Retain(1, attr1)
+	x := a.Transform(*b, true)
+	if *x.Ops[0].Retain != 1 {
+		t.Errorf("expected '1' but got %+v\n", x)
+	}
+	if *x.Ops[1].Retain != 1 {
+		t.Errorf("expected '1' but got %+v\n", x)
+	}
+	if len(x.Ops[1].Attributes) != 2 {
+		t.Errorf("expected '2' but got %+v\n", x)
+	}
+	if x.Ops[1].Attributes["color"] != "red" {
+		t.Errorf("expected 'red' but got %+v\n", x)
+	}
+	if x.Ops[1].Attributes["bold"] != true {
+		t.Errorf("expected 'true' but got %+v\n", x)
+	}
+}
+
+func TestTransformInsertDelete(t *testing.T) {
+	a := New(nil).Insert("A", nil)
+	b := New(nil).Delete(1)
+	x := a.Transform(*b, true)
+	if *x.Ops[0].Retain != 1 {
+		t.Errorf("expected '1' but got %+v\n", x)
+	}
+	if *x.Ops[1].Delete != 1 {
+		t.Errorf("expected '1' but got %+v\n", x)
+	}
+}
+func TestTransformDeleteInsert(t *testing.T) {
+	a := New(nil).Delete(1)
+	b := New(nil).Insert("B", nil)
+	x := a.Transform(*b, true)
+	if *x.Ops[0].Insert != "B" {
+		t.Errorf("expected 'B' but got %+v\n", x)
+	}
+	if len(x.Ops) > 1 {
+		t.Errorf("expected '1' op but got %+v\n", x)
+	}
+}
+func TestTransformDeleteRetain(t *testing.T) {
+	a := New(nil).Delete(1)
+	attr1 := make(map[string]interface{})
+	attr1["bold"] = true
+	attr1["color"] = "red"
+
+	b := New(nil).Retain(1, attr1)
+	x := a.Transform(*b, true)
+	if len(x.Ops) > 0 {
+		t.Errorf("expected '0' op but got %+v\n", x)
+	}
+}
+
+func TestTransformDeleteDelete(t *testing.T) {
+	a := New(nil).Delete(1)
+	b := New(nil).Delete(1)
+
+	x := a.Transform(*b, false)
+	if len(x.Ops) > 0 {
+		t.Errorf("expected '0' op but got %+v\n", x)
+	}
+}
+func TestTransformRetainInsert(t *testing.T) {
+	attr1 := make(map[string]interface{})
+	attr1["color"] = "blue"
+
+	a := New(nil).Retain(1, attr1)
+	b := New(nil).Insert("B", nil)
+
+	x := a.Transform(*b, false)
+	if len(x.Ops) > 1 {
+		t.Errorf("expected '1' op but got %+v\n", x)
+	}
+	if *x.Ops[0].Insert != "B" {
+		t.Errorf("expected 'B' op but got %+v\n", x)
+	}
+}
+func TestTransformRetainRetain(t *testing.T) {
+	attr1 := make(map[string]interface{})
+	attr1["color"] = "blue"
+	attr2 := make(map[string]interface{})
+	attr2["color"] = "red"
+	attr2["bold"] = true
+
+	a1 := New(nil).Retain(1, attr1)
+	b1 := New(nil).Retain(1, attr2)
+	a2 := New(nil).Retain(1, attr1)
+	b2 := New(nil).Retain(1, attr2)
+
+	x := a1.Transform(*b1, true)
+	if len(x.Ops) > 1 {
+		t.Errorf("expected '1' op but got %+v\n", x)
+	}
+	if *x.Ops[0].Retain != 1 {
+		t.Errorf("expected 'B' op but got %+v\n", x)
+	}
+	if len(x.Ops[0].Attributes) > 1 {
+		t.Errorf("expected '1' attr but got %+v\n", x)
+	}
+	x = b2.Transform(*a2, true)
+	if len(x.Ops) > 0 {
+		t.Errorf("expected '0' op but got %+v\n", x)
+	}
+}
+func TestTransformRetainRetainNoPrio(t *testing.T) {
+	attr1 := make(map[string]interface{})
+	attr1["color"] = "blue"
+	attr2 := make(map[string]interface{})
+	attr2["color"] = "red"
+	attr2["bold"] = true
+
+	a1 := New(nil).Retain(1, attr1)
+	b1 := New(nil).Retain(1, attr2)
+	a2 := New(nil).Retain(1, attr1)
+	b2 := New(nil).Retain(1, attr2)
+
+	x := a1.Transform(*b1, false)
+	if len(x.Ops) > 1 {
+		t.Errorf("expected '1' op but got %+v\n", x)
+	}
+	if *x.Ops[0].Retain != 1 {
+		t.Errorf("expected 'B' op but got %+v\n", x)
+	}
+	if len(x.Ops[0].Attributes) != 2 {
+		t.Errorf("expected '2' attr but got %+v\n", x)
+	}
+	x = b2.Transform(*a2, false)
+	if len(x.Ops) != 1 {
+		t.Errorf("expected '1' op but got %+v\n", x)
+	}
+}
+func TestTransformAlternatingEdits(t *testing.T) {
+
+	a := New(nil).Retain(2, nil).Insert("si", nil).Delete(5)
+	b := New(nil).Retain(1, nil).Insert("e", nil).Delete(5).Retain(1, nil).Insert("ow", nil)
+
+	x := a.Transform(*b, false)
+	if len(x.Ops) != 5 {
+		t.Errorf("expected '5' op but got %+v\n", x)
+	}
+	if *x.Ops[0].Retain != 1 {
+		t.Errorf("expected 'retain 1'  but got %+v\n", x)
+	}
+	if *x.Ops[1].Insert != "e" {
+		t.Errorf("expected 'insert e'  but got %+v\n", x)
+	}
+	if *x.Ops[2].Delete != 1 {
+		t.Errorf("expected 'delete 1'  but got %+v\n", x)
+	}
+	if *x.Ops[3].Retain != 2 {
+		t.Errorf("expected 'retain 2'  but got %+v\n", x)
+	}
+	if *x.Ops[4].Insert != "ow" {
+		t.Errorf("expected 'insert ow'  but got %+v\n", x)
+	}
+}
+
+//
+//  it('alternating edits', function () {
+//    var a1 = new Delta().retain(2).insert('si').delete(5);
+//    var b1 = new Delta().retain(1).insert('e').delete(5).retain(1).insert('ow');
+//    var a2 = new Delta(a1);
+//    var b2 = new Delta(b1);
+//    var expected1 = new Delta().retain(1).insert('e').delete(1).retain(2).insert('ow');
+//    var expected2 = new Delta().retain(2).insert('si').delete(1);
+//    expect(a1.transform(b1, false)).toEqual(expected1);
+//    expect(b2.transform(a2, false)).toEqual(expected2);
+//  });
+//
+//  it('conflicting appends', function () {
+//    var a1 = new Delta().retain(3).insert('aa');
+//    var b1 = new Delta().retain(3).insert('bb');
+//    var a2 = new Delta(a1);
+//    var b2 = new Delta(b1);
+//    var expected1 = new Delta().retain(5).insert('bb');
+//    var expected2 = new Delta().retain(3).insert('aa');
+//    expect(a1.transform(b1, true)).toEqual(expected1);
+//    expect(b2.transform(a2, false)).toEqual(expected2);
+//  });
+//
+//  it('prepend + append', function () {
+//    var a1 = new Delta().insert('aa');
+//    var b1 = new Delta().retain(3).insert('bb');
+//    var expected1 = new Delta().retain(5).insert('bb');
+//    var a2 = new Delta(a1);
+//    var b2 = new Delta(b1);
+//    var expected2 = new Delta().insert('aa');
+//    expect(a1.transform(b1, false)).toEqual(expected1);
+//    expect(b2.transform(a2, false)).toEqual(expected2);
+//  });
+//
+//  it('trailing deletes with differing lengths', function () {
+//    var a1 = new Delta().retain(2).delete(1);
+//    var b1 = new Delta().delete(3);
+//    var expected1 = new Delta().delete(2);
+//    var a2 = new Delta(a1);
+//    var b2 = new Delta(b1);
+//    var expected2 = new Delta();
+//    expect(a1.transform(b1, false)).toEqual(expected1);
+//    expect(b2.transform(a2, false)).toEqual(expected2);
+//  });
+//
+//  it('immutability', function () {
+//    var a1 = new Delta().insert('A');
+//    var a2 = new Delta().insert('A');
+//    var b1 = new Delta().insert('B');
+//    var b2 = new Delta().insert('B');
+//    var expected = new Delta().retain(1).insert('B');
+//    expect(a1.transform(b1, true)).toEqual(expected);
+//    expect(a1).toEqual(a2);
+//    expect(b1).toEqual(b2);
+//  });

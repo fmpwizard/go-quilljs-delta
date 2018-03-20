@@ -149,7 +149,7 @@ func (d *Delta) Push(newOp Op) *Delta {
 // Chop removes the last retain operation if it doesn't have any attributes
 func (d *Delta) Chop() *Delta {
 	x := len(d.Ops)
-	if x <= 1 {
+	if x == 0 {
 		return d
 	}
 	lastOp := d.Ops[x-1]
