@@ -558,3 +558,61 @@ func TestConcatMergable(t *testing.T) {
 		t.Errorf("expeted 'bold': true but got: \n%+v\n", ret.Ops[0].Attributes)
 	}
 }
+
+func TestTransformPositionInsertBeforePos(t *testing.T) {
+	delta := New(nil).Insert("A", nil)
+	if x := delta.TransformPosition(2, false); x != 3 {
+		t.Error("expected 3 but got ", x)
+	}
+}
+func TestTransformPositionInsertAfterPos(t *testing.T) {
+	delta := New(nil).Retain(2, nil).Insert("A", nil)
+	if x := delta.TransformPosition(1, false); x != 1 {
+		t.Error("expected 1 but got ", x)
+	}
+}
+func TestTransformPositionInsertAtPos(t *testing.T) {
+	delta := New(nil).Retain(2, nil).Insert("A", nil)
+	if x := delta.TransformPosition(2, true); x != 2 {
+		t.Error("expected 2 but got ", x)
+	}
+	if x := delta.TransformPosition(2, false); x != 3 {
+		t.Error("expected 3 but got ", x)
+	}
+}
+func TestTransformPositionDeleteBeforePos(t *testing.T) {
+	delta := New(nil).Delete(2)
+	if x := delta.TransformPosition(4, false); x != 2 {
+		t.Error("expected 2 but got ", x)
+	}
+}
+func TestTransformPositionDeleteAfterPos(t *testing.T) {
+	delta := New(nil).Retain(4, nil).Delete(2)
+	if x := delta.TransformPosition(2, false); x != 2 {
+		t.Error("expected 2 but got ", x)
+	}
+}
+func TestTransformPositionDeleteAcrossPos(t *testing.T) {
+	delta := New(nil).Retain(1, nil).Delete(4)
+	if x := delta.TransformPosition(2, false); x != 1 {
+		t.Error("expected 1 but got ", x)
+	}
+}
+func TestTransformPositionInsertAndDeleteBeforePos(t *testing.T) {
+	delta := New(nil).Retain(2, nil).Insert("A", nil).Delete(2)
+	if x := delta.TransformPosition(4, false); x != 3 {
+		t.Error("expected 3 but got ", x)
+	}
+}
+func TestTransformPositionInsertAndDeleteAcrossPos(t *testing.T) {
+	delta := New(nil).Retain(2, nil).Insert("A", nil).Delete(4)
+	if x := delta.TransformPosition(4, false); x != 3 {
+		t.Error("expected 3 but got ", x)
+	}
+}
+func TestTransformPositionDeleteBeforeAndDeleteAcrossPos(t *testing.T) {
+	delta := New(nil).Delete(1).Retain(1, nil).Delete(4)
+	if x := delta.TransformPosition(4, false); x != 1 {
+		t.Error("expected 1 but got ", x)
+	}
+}

@@ -225,3 +225,32 @@ func (d *Delta) TransformPosition(index int, priority bool) int {
 	}
 	return index
 }
+
+// Transform given Delta against own operations
+func (d *Delta) Transform(other Delta, priority bool) *Delta {
+	thisIter := OpsIterator(d.Ops)
+	otherIter := OpsIterator(other.Ops)
+	delta := New(nil)
+	for thisIter.HasNext() || otherIter.HasNext() {
+		if thisIter.PeekType() == "insert" && (priority || otherIter.PeekType() != "insert") {
+			delta.Retain(OpsLength(thisIter.Next(math.MaxInt64)), nil)
+		} else if otherIter.PeekType() == "insert" {
+			delta.Push(otherIter.Next(math.MaxInt64))
+		} else {
+			length := int(math.Min(float64(thisIter.PeekLength()), float64(otherIter.PeekLength())))
+			thisOp := thisIter.Next(length)
+			otherOp := otherIter.Next(length)
+			if thisOp.Delete != nil {
+				// Our delete either makes their delete redundant or removes their retain
+				continue
+			} else if otherOp.Delete != nil {
+				delta.Push(otherOp)
+			} else {
+				// We retain either their retain or insert
+				delta.Retain(length, AttrTransform(thisOp.Attributes, otherOp.Attributes, priority))
+			}
+		}
+	}
+
+	return delta.Chop()
+}
