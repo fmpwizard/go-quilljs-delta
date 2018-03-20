@@ -6,7 +6,7 @@ Try to find a balance between staying close to the original and being idiomatic 
 
 Refer to [the original QuillJS repo](https://github.com/quilljs/delta) for reference
 
-[Godoc](https://godoc.org/github.com/fmpwizard/go-quilljs-delta/delta)
+[![GoDoc](https://godoc.org/github.com/fmpwizard/go-quilljs-delta/delta?status.svg)](https://godoc.org/github.com/fmpwizard/go-quilljs-delta/delta)
 
 ## Motivation
 
