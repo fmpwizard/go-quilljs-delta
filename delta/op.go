@@ -1,7 +1,7 @@
 package delta
 
 import (
-	"log"
+//"log"
 )
 
 // AttrCompose takes two attributes maps and composes (combine) them
@@ -54,7 +54,6 @@ func AttrDiff(a, b map[string]interface{}) map[string]interface{} {
 	}
 
 	for _, v := range keys {
-		log.Println("key ", v)
 		if a[v] != b[v] {
 			bb, bFound := b[v]
 			if !bFound {

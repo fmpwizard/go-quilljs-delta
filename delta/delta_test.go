@@ -888,3 +888,16 @@ func TestTransformTrailingDeletesWithDifferingLengths(t *testing.T) {
 		t.Errorf("expected '0' ops but got %+v\n", x)
 	}
 }
+
+func BenchmarkInsert(t *testing.B) {
+	a := New(nil)
+	for x := 0; x < t.N; x++ {
+		a.Insert("abcdefghijkl", nil)
+	}
+}
+func BenchmarkInsert2(t *testing.B) {
+	a := New(nil)
+	for x := 0; x < t.N; x++ {
+		a.Insert("a", nil)
+	}
+}

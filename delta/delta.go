@@ -165,7 +165,6 @@ func (d *Delta) Chop() *Delta {
 func (d *Delta) Compose(other Delta) *Delta {
 	thisIter := OpsIterator(d.Ops)
 	otherIter := OpsIterator(other.Ops)
-	//log.Printf("ss %+v\n", *other.Ops[0].Retain)
 	delta := New(nil)
 	for thisIter.HasNext() || otherIter.HasNext() {
 		if otherIter.PeekType() == "insert" {
