@@ -4,22 +4,23 @@ package delta
 
 import (
 	//"log"
+	"encoding/json"
 	"math"
 	"reflect"
 )
 
 // Delta is the main type representing a QuillJs delta
 type Delta struct {
-	Ops []Op
+	Ops []Op `json:"ops"`
 }
 
 // Op is the smallest "operation"
 // TODO: Handle embeds
 type Op struct {
-	Insert     *string
-	Retain     *int
-	Attributes map[string]interface{}
-	Delete     *int
+	Insert     *string                `json:"insert,omitempty"`
+	Retain     *int                   `json:"retain,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Delete     *int                   `json:"delete,omitempty"`
 }
 
 // IsNil tells you if the current Op is a nil operation
@@ -35,6 +36,15 @@ func New(ops []Op) *Delta {
 	return &Delta{
 		Ops: ops,
 	}
+}
+
+// FromJSON takes a list of ops in json format and creates a Delta
+func FromJSON(in []byte) (*Delta, error) {
+	var ret Delta
+	if err := json.Unmarshal(in, &ret); err != nil {
+		return nil, err
+	}
+	return &ret, nil
 }
 
 // Insert takes a string and a map of attributes and adds them to the Delta d

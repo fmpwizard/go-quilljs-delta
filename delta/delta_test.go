@@ -1,6 +1,8 @@
 package delta
 
 import (
+	"bytes"
+	"encoding/json"
 	"reflect"
 	"testing"
 )
@@ -900,4 +902,91 @@ func BenchmarkInsert2(t *testing.B) {
 	for x := 0; x < t.N; x++ {
 		a.Insert("a", nil)
 	}
+}
+func BenchmarkInsert3(t *testing.B) {
+	a := New(nil)
+	for x := 0; x < t.N; x++ {
+		a.Insert("a", nil).Retain(1, nil).Insert("b", nil).Retain(4, nil).Delete(1)
+	}
+}
+
+func TestFromJSON1(t *testing.T) {
+	in := []byte(`{"ops":[{"retain":54},{"insert":"g"}]}`)
+	d, err := FromJSON(in)
+	if err != nil {
+		t.Error("failed with ", err)
+	}
+	if *d.Ops[0].Retain != 54 {
+		t.Errorf("expected 'retain 54' but got %+v\n", *d.Ops[0].Retain)
+	}
+	if *d.Ops[1].Insert != "g" {
+		t.Errorf("expected 'insert g' but got %+v\n", *d.Ops[1].Insert)
+	}
+}
+func TestFromJSON2(t *testing.T) {
+	in := []byte(`{"ops":[{"retain":35},{"retain":11,"attributes":{"bold":true}}]}`)
+	d, err := FromJSON(in)
+	if err != nil {
+		t.Error("failed with ", err)
+	}
+	if *d.Ops[0].Retain != 35 {
+		t.Errorf("expected 'retain 35' but got %+v\n", *d.Ops[0].Retain)
+	}
+	if *d.Ops[1].Retain != 11 {
+		t.Errorf("expected 'retain 11' but got %+v\n", *d.Ops[1].Retain)
+	}
+	if d.Ops[1].Attributes["bold"] != true {
+		t.Errorf("expected 'bold: true' but got %+v\n", d.Ops[1].Attributes)
+	}
+}
+func TestFromJSON3(t *testing.T) {
+	in := []byte(`{"ops":[{"retain":8},{"delete":7}]}`)
+	d, err := FromJSON(in)
+	if err != nil {
+		t.Error("failed with ", err)
+	}
+	if *d.Ops[0].Retain != 8 {
+		t.Errorf("expected 'retain 8' but got %+v\n", *d.Ops[0].Retain)
+	}
+	if *d.Ops[1].Delete != 7 {
+		t.Errorf("expected 'delete 7' but got %+v\n", *d.Ops[1].Delete)
+	}
+}
+func TestMarshalJSON1(t *testing.T) {
+	in := []byte(`{"ops":[{"retain":8},{"delete":7}]}`)
+	d, err := FromJSON(in)
+	if err != nil {
+		t.Error("failed with ", err)
+	}
+	out, err := json.Marshal(d)
+	if err != nil {
+		t.Error("failed to get json string, err: ", err)
+	}
+	if bytes.Compare(in, out) != 0 {
+		t.Errorf("expected:\n'%+v' but got :\n%+v\n", string(in[:]), string(out[:]))
+	}
+}
+func TestMarshalJSON2(t *testing.T) {
+	in := []byte(`{"ops":[{"retain":35},{"retain":11,"attributes":{"bold":true}}]}`)
+	d, err := FromJSON(in)
+	if err != nil {
+		t.Error("failed with ", err)
+	}
+	out, err := json.Marshal(d)
+	if err != nil {
+		t.Error("failed to get json string, err: ", err)
+	}
+	if bytes.Compare(in, out) != 0 {
+		t.Errorf("expected:\n'%+v' but got :\n%+v\n", string(in[:]), string(out[:]))
+	}
+}
+
+func BenchmarkFromJson1(t *testing.B) {
+	in := []byte(`{"ops":[{"retain":35},{"retain":11,"attributes":{"bold":true}}]}`)
+	var delta *Delta
+	for x := 0; x < t.N; x++ {
+		delta, _ = FromJSON(in)
+	}
+	t.StopTimer()
+	t.Logf("delta is %+v\n", delta)
 }
