@@ -990,3 +990,36 @@ func BenchmarkFromJson1(t *testing.B) {
 	t.StopTimer()
 	t.Logf("delta is %+v\n", delta)
 }
+
+func TestDeleteChineseAll(t *testing.T) {
+	hellowWorld := "你好，世界!"
+	a := New(nil).Insert(hellowWorld, nil)
+	b := New(nil).Delete(6)
+
+	ret := a.Compose(*b)
+
+	if ret.Ops != nil {
+		t.Errorf("ret is %+v\n", ret)
+	}
+}
+func TestDeleteChinese1Char(t *testing.T) {
+	hellowWorld := "你好，世界!"
+	expected := "你好，世界"
+	a := New(nil).Insert(hellowWorld, nil)
+	b := New(nil).Retain(5, nil).Delete(1)
+	ret := a.Compose(*b)
+	if *ret.Ops[0].Insert != expected {
+		t.Errorf("Expected: '%s' but got %+v\n", expected, *ret.Ops[0].Insert)
+	}
+}
+
+func TestDeleteChinese2Char(t *testing.T) {
+	hellowWorld := "你好，世界!"
+	expected := "你好，世"
+	a := New(nil).Insert(hellowWorld, nil)
+	b := New(nil).Retain(4, nil).Delete(2)
+	ret := a.Compose(*b)
+	if *ret.Ops[0].Insert != expected {
+		t.Errorf("Expected: '%s' but got %+v\n", expected, *ret.Ops[0].Insert)
+	}
+}
