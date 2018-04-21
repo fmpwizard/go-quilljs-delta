@@ -3,8 +3,8 @@
 package delta
 
 import (
-	//"log"
 	"encoding/json"
+	//"log"
 	"math"
 	"reflect"
 )
@@ -50,7 +50,7 @@ func FromJSON(in []byte) (*Delta, error) {
 // Insert takes a string and a map of attributes and adds them to the Delta d
 // If the string is empty, we return the original delta
 func (d *Delta) Insert(text string, attrs map[string]interface{}) *Delta {
-	if len(text) == 0 {
+	if len([]rune(text)) == 0 {
 		return d
 	}
 	newOp := Op{

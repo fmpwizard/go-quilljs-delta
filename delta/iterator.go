@@ -36,6 +36,7 @@ func (x *Iterator) Next(length int) Op {
 			Retain: &m,
 		}
 	}
+
 	nextOp := x.Ops[x.Index]
 	offset := x.Offset
 	opLength := OpsLength(nextOp)
@@ -62,11 +63,12 @@ func (x *Iterator) Next(length int) Op {
 		// to extract. This is different than the way substr in js is implemented
 		// Also, using a :length greater than the actual len(str) panics
 		l := length + offset // because of how Go's slice[a:b] work
-		if xx := len(*nextOp.Insert); xx < l {
+		if xx := len([]rune(*nextOp.Insert)); xx < l {
 			l = xx
 		}
-		str := (*nextOp.Insert)[offset:l]
-		retOp.Insert = &str
+		str := ([]rune(*nextOp.Insert))[offset:l]
+		p := string(str)
+		retOp.Insert = &p
 	}
 	return retOp
 }
