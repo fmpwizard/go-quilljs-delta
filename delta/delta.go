@@ -63,6 +63,18 @@ func (o *Op) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON let's us marshal our Insert []rune into a string
+func (o *Op) MarshalJSON() ([]byte, error) {
+	type Alias Op
+	return json.Marshal(&struct {
+		Insert string `json:"insert,omitempty"`
+		*Alias
+	}{
+		Insert: string(o.Insert),
+		Alias:  (*Alias)(o),
+	})
+}
+
 // Insert takes a string and a map of attributes and adds them to the Delta d
 // If the string is empty, we return the original delta
 func (d *Delta) Insert(text string, attrs map[string]interface{}) *Delta {

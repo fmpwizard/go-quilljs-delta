@@ -980,6 +980,20 @@ func TestMarshalJSON2(t *testing.T) {
 		t.Errorf("expected:\n'%+v' but got :\n%+v\n", string(in[:]), string(out[:]))
 	}
 }
+func TestMarshalJSON3(t *testing.T) {
+	in := []byte(`{"ops":[{"insert":"diego"},{"retain":11,"attributes":{"bold":true}}]}`)
+	d, err := FromJSON(in)
+	if err != nil {
+		t.Error("failed with ", err)
+	}
+	out, err := json.Marshal(d)
+	if err != nil {
+		t.Error("failed to get json string, err: ", err)
+	}
+	if bytes.Compare(in, out) != 0 {
+		t.Errorf("expected:\n'%+v' but got :\n'%+v'\n", string(in[:]), string(out[:]))
+	}
+}
 
 func BenchmarkFromJson1(t *testing.B) {
 	in := []byte(`{"ops":[{"retain":35},{"retain":11,"attributes":{"bold":true}}]}`)
