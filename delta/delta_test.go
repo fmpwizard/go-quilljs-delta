@@ -27,8 +27,8 @@ func TestInsert1(t *testing.T) {
 		t.Errorf("failed to create Delta with insert, got: %+v\n", n.Ops)
 	}
 
-	if *n.Ops[0].Insert != "test" {
-		t.Error("failed to create Delta with test insert, got: ", *n.Ops[0].Insert)
+	if string(n.Ops[0].Insert) != "test" {
+		t.Error("failed to create Delta with test insert, got: ", string(n.Ops[0].Insert))
 	}
 	if n.Ops[0].Attributes != nil {
 		t.Error("failed to create Delta with only insert but no att, att was: ", n.Ops[0].Attributes)
@@ -42,8 +42,8 @@ func TestInsertWithAttr(t *testing.T) {
 	if len(n.Ops) != 1 {
 		t.Errorf("failed to create Delta with insert, got: %+v\n", n.Ops)
 	}
-	if *n.Ops[0].Insert != "test" {
-		t.Error("failed to create Delta with test insert, got: ", *n.Ops[0].Insert)
+	if string(n.Ops[0].Insert) != "test" {
+		t.Error("failed to create Delta with test insert, got: ", string(n.Ops[0].Insert))
 	}
 	if n.Ops[0].Attributes == nil {
 		t.Error("failed to create Delta with only insert with att, attr was nil")
@@ -62,7 +62,7 @@ func TestInsertAfterDelete(t *testing.T) {
 	if len(n.Ops) != 2 {
 		t.Errorf("failed to create Delta with delete and insert, got: %+v\n", n.Ops)
 	}
-	if *n.Ops[0].Insert != *exp.Ops[0].Insert {
+	if string(n.Ops[0].Insert) != string(exp.Ops[0].Insert) {
 		t.Errorf("n.Ops and exp.Ops are not equal.\nn: %+v\nexp: %+v\n", n.Ops, exp.Ops)
 	}
 }
@@ -76,10 +76,10 @@ func TestInsertAfterDeleteWithMerge(t *testing.T) {
 	if len(n.Ops) != 2 {
 		t.Errorf("failed to create Delta with delete and insert merge, got: %+v\n", n.Ops)
 	}
-	if *n.Ops[0].Insert != *exp.Ops[0].Insert {
+	if string(n.Ops[0].Insert) != string(exp.Ops[0].Insert) {
 		t.Logf("n.Ops and exp.Ops are not equal.\nn: %+v\nexp: %+v\n", n.Ops, exp.Ops)
-		t.Errorf("n.Ops and exp.Ops are not equal.\nn: %+v\n", *n.Ops[0].Insert)
-		t.Errorf("n.Ops and exp.Ops are not equal.\nn: %+v\n", *n.Ops[1].Insert)
+		t.Errorf("n.Ops and exp.Ops are not equal.\nn: %+v\n", string(n.Ops[0].Insert))
+		t.Errorf("n.Ops and exp.Ops are not equal.\nn: %+v\n", string(n.Ops[1].Insert))
 	}
 }
 
@@ -142,12 +142,12 @@ func TestRetainPositiveAndAttrs(t *testing.T) {
 
 func TestPush(t *testing.T) {
 	n := New(nil)
-	x := "test"
-	n.Push(Op{Insert: &x})
+	x := []rune("test")
+	n.Push(Op{Insert: x})
 	if len(n.Ops) != 1 {
 		t.Errorf("failed to Push({insert: 'test'}) to Delta, got: %+v\n", n.Ops)
 	}
-	if *n.Ops[0].Insert != x {
+	if string(n.Ops[0].Insert) != string(x) {
 		t.Errorf("failed to Push to Delta, got: %+v\n", n.Ops)
 	}
 }
@@ -187,13 +187,13 @@ func TestPushRetainDeleteInsert(t *testing.T) {
 func TestPushMultiInsert(t *testing.T) {
 	n := New(nil)
 	n.Insert("Diego ", nil)
-	x := "Smith"
-	n.Push(Op{Insert: &x})
+	x := []rune("Smith")
+	n.Push(Op{Insert: x})
 	if len(n.Ops) != 1 {
 		t.Errorf("failed to Push({insert: 'test'}) to Delta, got: %+v\n", n.Ops)
 	}
-	if *n.Ops[0].Insert != "Diego Smith" {
-		t.Errorf("failed to Push to Delta, got: %+v\n", *n.Ops[0].Insert)
+	if string(n.Ops[0].Insert) != "Diego Smith" {
+		t.Errorf("failed to Push to Delta, got: %+v\n", string(n.Ops[0].Insert))
 	}
 }
 func TestPushMultiInsertMathingAttrs(t *testing.T) {
@@ -201,13 +201,13 @@ func TestPushMultiInsertMathingAttrs(t *testing.T) {
 	attr := make(map[string]interface{})
 	attr["bold"] = true
 	n.Insert("Diego ", attr)
-	x := "Smith"
-	n.Push(Op{Insert: &x, Attributes: attr})
+	x := []rune("Smith")
+	n.Push(Op{Insert: x, Attributes: attr})
 	if len(n.Ops) != 1 {
 		t.Errorf("failed to Push({insert: 'test'}) to Delta, got: %+v\n", n.Ops)
 	}
-	if *n.Ops[0].Insert != "Diego Smith" {
-		t.Errorf("failed to Push to Delta, got: %+v\n", *n.Ops[0].Insert)
+	if string(n.Ops[0].Insert) != "Diego Smith" {
+		t.Errorf("failed to Push to Delta, got: %+v\n", string(n.Ops[0].Insert))
 	}
 }
 
@@ -216,18 +216,18 @@ func TestPushMultiInsertNonMathingAttrs(t *testing.T) {
 	attr1 := make(map[string]interface{})
 	attr1["bold"] = true
 	n.Insert("Diego ", attr1)
-	x := "Smith"
+	x := []rune("Smith")
 	attr2 := make(map[string]interface{})
 	attr2["bold"] = false
-	n.Push(Op{Insert: &x, Attributes: attr2})
+	n.Push(Op{Insert: x, Attributes: attr2})
 	if len(n.Ops) != 2 {
 		t.Errorf("failed to Push multi insert, diff attributes, got: %+v\n", n.Ops)
 	}
-	if *n.Ops[0].Insert != "Diego " {
-		t.Errorf("failed to Push multi insert, diff attributes, got: %+v\n", *n.Ops[0].Insert)
+	if string(n.Ops[0].Insert) != "Diego " {
+		t.Errorf("failed to Push multi insert, diff attributes, got: %+v\n", string(n.Ops[0].Insert))
 	}
-	if *n.Ops[1].Insert != "Smith" {
-		t.Errorf("failed to Push multi insert, diff attributes, got: %+v\n", *n.Ops[1].Insert)
+	if string(n.Ops[1].Insert) != "Smith" {
+		t.Errorf("failed to Push multi insert, diff attributes, got: %+v\n", string(n.Ops[1].Insert))
 	}
 }
 
@@ -273,8 +273,8 @@ func TestDeltaComposeTwoInsert(t *testing.T) {
 	expected := New(nil).Insert("B", nil).Insert("A", nil)
 	x := a.Compose(*b).Ops
 
-	if *x[0].Insert != *expected.Ops[0].Insert {
-		t.Errorf("expected %+v but got %+v\n", *expected.Ops[0].Insert, *x[0].Insert)
+	if string(x[0].Insert) != string(expected.Ops[0].Insert) {
+		t.Errorf("expected %+v but got %+v\n", string(expected.Ops[0].Insert), string(x[0].Insert))
 	}
 }
 func TestDeltaComposeInsertRetain(t *testing.T) {
@@ -292,8 +292,8 @@ func TestDeltaComposeInsertRetain(t *testing.T) {
 	expected := New(nil).Insert("A", attr2)
 	x := a.Compose(*b).Ops
 
-	if *x[0].Insert != *expected.Ops[0].Insert {
-		t.Errorf("expected %+v but got %+v\n", *expected.Ops[0].Insert, *x[0].Insert)
+	if string(x[0].Insert) != string(expected.Ops[0].Insert) {
+		t.Errorf("expected %+v but got %+v\n", string(expected.Ops[0].Insert), string(x[0].Insert))
 	}
 
 	if len(x[0].Attributes) != 2 {
@@ -316,8 +316,8 @@ func TestDeltaComposeDeleteInsert(t *testing.T) {
 	expected := New(nil).Insert("A", nil).Delete(1)
 	x := b.Compose(*a).Ops
 
-	if *expected.Ops[0].Insert != *x[0].Insert {
-		t.Errorf("expected '%+v' but got '%+v'\n", *expected.Ops[0].Insert, *x[0].Insert)
+	if string(expected.Ops[0].Insert) != string(x[0].Insert) {
+		t.Errorf("expected '%+v' but got '%+v'\n", string(expected.Ops[0].Insert), string(x[0].Insert))
 	}
 	if *expected.Ops[1].Delete != *x[1].Delete {
 		t.Errorf("expected '%+v' but got '%+v'\n", *expected.Ops[0].Delete, *x[0].Delete)
@@ -365,8 +365,8 @@ func TestDeltaComposeRetainInsert(t *testing.T) {
 	expected := New(nil).Insert("B", nil).Retain(1, attr1)
 	x := a.Compose(*b).Ops
 
-	if *x[0].Insert != *expected.Ops[0].Insert || *x[0].Insert != "B" {
-		t.Errorf("expected %+v but got %+v\n", *expected.Ops[0].Insert, *x[0].Insert)
+	if string(x[0].Insert) != string(expected.Ops[0].Insert) || string(x[0].Insert) != "B" {
+		t.Errorf("expected %+v but got %+v\n", string(expected.Ops[0].Insert), string(x[0].Insert))
 	}
 
 	if len(x[1].Attributes) != 1 {
@@ -427,8 +427,8 @@ func TestDeltaComposeInsertInMiddle(t *testing.T) {
 	a := New(nil).Insert("Hello", nil)
 	b := New(nil).Retain(3, nil).Insert("X", nil)
 	x := a.Compose(*b).Ops
-	if *x[0].Insert != "HelXlo" {
-		t.Errorf("expected 'HelXlo' but got %+v\n", *x[0].Insert)
+	if string(x[0].Insert) != "HelXlo" {
+		t.Errorf("expected 'HelXlo' but got %+v\n", string(x[0].Insert))
 	}
 }
 func TestDeltaComposeInsertDeleteOrder(t *testing.T) {
@@ -439,12 +439,12 @@ func TestDeltaComposeInsertDeleteOrder(t *testing.T) {
 	deleteFirst := New(nil).Retain(3, nil).Delete(1).Insert("X", nil)
 
 	xa := a.Compose(*insertFirst).Ops
-	if *xa[0].Insert != "HelXo" {
-		t.Errorf("expected 'HelXo' but got '%+v'\n", *xa[0].Insert)
+	if string(xa[0].Insert) != "HelXo" {
+		t.Errorf("expected 'HelXo' but got '%+v'\n", string(xa[0].Insert))
 	}
 	xb := b.Compose(*deleteFirst).Ops
-	if *xb[0].Insert != "HelXo" {
-		t.Errorf("expected 'HelXo' but got '%+v'\n", *xb[0].Insert)
+	if string(xb[0].Insert) != "HelXo" {
+		t.Errorf("expected 'HelXo' but got '%+v'\n", string(xb[0].Insert))
 	}
 }
 func TestDeltaComposeDeleteEntireText(t *testing.T) {
@@ -466,8 +466,8 @@ func TestDeltaComposeRetainExtra(t *testing.T) {
 	b := New(nil).Retain(1, attr2)
 
 	x := a.Compose(*b).Ops
-	if *x[0].Insert != "A" {
-		t.Errorf("expected 'A' but got '%+v'\n", *x[0].Insert)
+	if string(x[0].Insert) != "A" {
+		t.Errorf("expected 'A' but got '%+v'\n", string(x[0].Insert))
 	}
 	if x[0].Attributes != nil {
 		t.Errorf("expected 'nil' attr but got '%+v'\n", x[0].Attributes)
@@ -486,11 +486,11 @@ func TestDeltaComposeImmutability(t *testing.T) {
 	attr3["bold"] = true
 
 	x := a1.Compose(*b1).Ops
-	if *x[0].Insert != "T" {
-		t.Errorf("expected 'T' but got '%+v'\n", *x[0].Insert)
+	if string(x[0].Insert) != "T" {
+		t.Errorf("expected 'T' but got '%+v'\n", string(x[0].Insert))
 	}
-	if *x[1].Insert != "t" {
-		t.Errorf("expected 't' but got '%+v'\n", *x[1].Insert)
+	if string(x[1].Insert) != "t" {
+		t.Errorf("expected 't' but got '%+v'\n", string(x[1].Insert))
 	}
 	if x[0].Attributes["color"] != "red" {
 		t.Errorf("expected 'color: red' attr but got '%+v'\n", x[0].Attributes)
@@ -525,7 +525,7 @@ func TestConcatEmptyDelta(t *testing.T) {
 	if len(ret.Ops) != 1 {
 		t.Errorf("expected 1 op but got %+v\n", ret.Ops)
 	}
-	if *ret.Ops[0].Insert != "Test" {
+	if string(ret.Ops[0].Insert) != "Test" {
 		t.Errorf("expected Insert op but got %+v\n", ret.Ops)
 	}
 }
@@ -540,10 +540,10 @@ func TestConcatUnmergable(t *testing.T) {
 		t.Errorf("expected 2 ops but got %+v\n", ret.Ops)
 	}
 
-	if *ret.Ops[0].Insert != "Test" {
+	if string(ret.Ops[0].Insert) != "Test" {
 		t.Errorf("expected Insert op but got %+v\n", ret.Ops)
 	}
-	if *ret.Ops[1].Insert != "!" {
+	if string(ret.Ops[1].Insert) != "!" {
 		t.Errorf("expected Insert op but got:\n%+v\n", ret.Ops)
 	}
 	if ret.Ops[1].Attributes["bold"] != true {
@@ -561,7 +561,7 @@ func TestConcatMergable(t *testing.T) {
 		t.Errorf("expected 1 op but got %+v\n", ret.Ops)
 	}
 
-	if *ret.Ops[0].Insert != "Test!" {
+	if string(ret.Ops[0].Insert) != "Test!" {
 		t.Errorf("expected Insert op but got %+v\n", ret.Ops)
 	}
 	if ret.Ops[0].Attributes["bold"] != true {
@@ -636,7 +636,7 @@ func TestTransformInsertInsert(t *testing.T) {
 	if *x1.Ops[0].Retain != 1 {
 		t.Errorf("expected 1 but got %+v\n", x1)
 	}
-	if *x1.Ops[1].Insert != "B" {
+	if string(x1.Ops[1].Insert) != "B" {
 		t.Errorf("expected 'B' but got %+v\n", x1)
 	}
 
@@ -644,7 +644,7 @@ func TestTransformInsertInsert(t *testing.T) {
 	if len(x2.Ops) != 1 {
 		t.Errorf("expected 1 op but got %+v\n", x2)
 	}
-	if *x2.Ops[0].Insert != "B" {
+	if string(x2.Ops[0].Insert) != "B" {
 		t.Errorf("expected 'B' but got %+v\n", x2)
 	}
 }
@@ -687,7 +687,7 @@ func TestTransformDeleteInsert(t *testing.T) {
 	a := New(nil).Delete(1)
 	b := New(nil).Insert("B", nil)
 	x := a.Transform(*b, true)
-	if *x.Ops[0].Insert != "B" {
+	if string(x.Ops[0].Insert) != "B" {
 		t.Errorf("expected 'B' but got %+v\n", x)
 	}
 	if len(x.Ops) > 1 {
@@ -727,7 +727,7 @@ func TestTransformRetainInsert(t *testing.T) {
 	if len(x.Ops) > 1 {
 		t.Errorf("expected '1' op but got %+v\n", x)
 	}
-	if *x.Ops[0].Insert != "B" {
+	if string(x.Ops[0].Insert) != "B" {
 		t.Errorf("expected 'B' op but got %+v\n", x)
 	}
 }
@@ -797,7 +797,7 @@ func TestTransformAlternatingEdits(t *testing.T) {
 	if *x.Ops[0].Retain != 1 {
 		t.Errorf("expected 'retain 1'  but got %+v\n", x)
 	}
-	if *x.Ops[1].Insert != "e" {
+	if string(x.Ops[1].Insert) != "e" {
 		t.Errorf("expected 'insert e'  but got %+v\n", x)
 	}
 	if *x.Ops[2].Delete != 1 {
@@ -806,7 +806,7 @@ func TestTransformAlternatingEdits(t *testing.T) {
 	if *x.Ops[3].Retain != 2 {
 		t.Errorf("expected 'retain 2'  but got %+v\n", x)
 	}
-	if *x.Ops[4].Insert != "ow" {
+	if string(x.Ops[4].Insert) != "ow" {
 		t.Errorf("expected 'insert ow'  but got %+v\n", x)
 	}
 
@@ -817,7 +817,7 @@ func TestTransformAlternatingEdits(t *testing.T) {
 	if *x.Ops[0].Retain != 2 {
 		t.Errorf("expected 'retain 2'  but got %+v\n", x)
 	}
-	if *x.Ops[1].Insert != "si" {
+	if string(x.Ops[1].Insert) != "si" {
 		t.Errorf("expected 'insert si'  but got %+v\n", x)
 	}
 	if *x.Ops[2].Delete != 1 {
@@ -836,7 +836,7 @@ func TestTransformConflictingAppends(t *testing.T) {
 	if *x.Ops[0].Retain != 5 {
 		t.Errorf("expected 'retain 5'  but got %+v\n", x)
 	}
-	if *x.Ops[1].Insert != "bb" {
+	if string(x.Ops[1].Insert) != "bb" {
 		t.Errorf("expected 'insert bb'  but got %+v\n", x)
 	}
 	x = b.Transform(*a, false)
@@ -846,7 +846,7 @@ func TestTransformConflictingAppends(t *testing.T) {
 	if *x.Ops[0].Retain != 3 {
 		t.Errorf("expected 'retain 3'  but got %+v\n", x)
 	}
-	if *x.Ops[1].Insert != "aa" {
+	if string(x.Ops[1].Insert) != "aa" {
 		t.Errorf("expected 'insert aa'  but got %+v\n", x)
 	}
 }
@@ -862,14 +862,14 @@ func TestTransformPrependAppend(t *testing.T) {
 	if *x.Ops[0].Retain != 5 {
 		t.Errorf("expected 'retain 5' but got %+v\n", x)
 	}
-	if *x.Ops[1].Insert != "bb" {
+	if string(x.Ops[1].Insert) != "bb" {
 		t.Errorf("expected 'insert bb' but got %+v\n", x)
 	}
 	x = b.Transform(*a, false)
 	if len(x.Ops) != 1 {
 		t.Errorf("expected '1' op but got %+v\n", x)
 	}
-	if *x.Ops[0].Insert != "aa" {
+	if string(x.Ops[0].Insert) != "aa" {
 		t.Errorf("expected 'insert aa' but got %+v\n", x)
 	}
 }
@@ -919,8 +919,8 @@ func TestFromJSON1(t *testing.T) {
 	if *d.Ops[0].Retain != 54 {
 		t.Errorf("expected 'retain 54' but got %+v\n", *d.Ops[0].Retain)
 	}
-	if *d.Ops[1].Insert != "g" {
-		t.Errorf("expected 'insert g' but got %+v\n", *d.Ops[1].Insert)
+	if string(d.Ops[1].Insert) != "g" {
+		t.Errorf("expected 'insert g' but got %+v\n", string(d.Ops[1].Insert))
 	}
 }
 func TestFromJSON2(t *testing.T) {
@@ -1008,8 +1008,8 @@ func TestDeleteChinese1Char(t *testing.T) {
 	a := New(nil).Insert(hellowWorld, nil)
 	b := New(nil).Retain(5, nil).Delete(1)
 	ret := a.Compose(*b)
-	if *ret.Ops[0].Insert != expected {
-		t.Errorf("Expected: '%s' but got %+v\n", expected, *ret.Ops[0].Insert)
+	if string(ret.Ops[0].Insert) != expected {
+		t.Errorf("Expected: '%s' but got %+v\n", expected, string(ret.Ops[0].Insert))
 	}
 }
 
@@ -1019,7 +1019,7 @@ func TestDeleteChinese2Char(t *testing.T) {
 	a := New(nil).Insert(hellowWorld, nil)
 	b := New(nil).Retain(4, nil).Delete(2)
 	ret := a.Compose(*b)
-	if *ret.Ops[0].Insert != expected {
-		t.Errorf("Expected: '%s' but got %+v\n", expected, *ret.Ops[0].Insert)
+	if string(ret.Ops[0].Insert) != expected {
+		t.Errorf("Expected: '%s' but got %+v\n", expected, string(ret.Ops[0].Insert))
 	}
 }

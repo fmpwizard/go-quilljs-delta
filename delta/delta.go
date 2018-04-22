@@ -17,7 +17,7 @@ type Delta struct {
 // Op is the smallest "operation"
 // TODO: Handle embeds
 type Op struct {
-	Insert     *string                `json:"insert,omitempty"`
+	Insert     []rune                 `json:"insert,omitempty"`
 	Retain     *int                   `json:"retain,omitempty"`
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 	Delete     *int                   `json:"delete,omitempty"`
@@ -47,6 +47,22 @@ func FromJSON(in []byte) (*Delta, error) {
 	return &ret, nil
 }
 
+// UnmarshalJSON let's us unmarshal a string in the `insert` op to a []rune
+func (o *Op) UnmarshalJSON(data []byte) error {
+	type Alias Op
+	aux := &struct {
+		Insert string `json:"insert"`
+		*Alias
+	}{
+		Alias: (*Alias)(o),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	o.Insert = []rune(aux.Insert)
+	return nil
+}
+
 // Insert takes a string and a map of attributes and adds them to the Delta d
 // If the string is empty, we return the original delta
 func (d *Delta) Insert(text string, attrs map[string]interface{}) *Delta {
@@ -54,7 +70,7 @@ func (d *Delta) Insert(text string, attrs map[string]interface{}) *Delta {
 		return d
 	}
 	newOp := Op{
-		Insert: &text,
+		Insert: []rune(text),
 	}
 
 	if attrs != nil {
@@ -123,9 +139,10 @@ func (d *Delta) Push(newOp Op) *Delta {
 		}
 		if reflect.DeepEqual(newOp.Attributes, lastOp.Attributes) {
 			if newOp.Insert != nil && lastOp.Insert != nil {
-				mergedText := *lastOp.Insert + *newOp.Insert
+				mergedText := make([]rune, 0, len(lastOp.Insert)+len(newOp.Insert))
+				mergedText = append(lastOp.Insert, newOp.Insert...)
 				d.Ops[idx-1] = Op{
-					Insert: &mergedText,
+					Insert: mergedText,
 				}
 				if newOp.Attributes != nil {
 					d.Ops[idx-1].Attributes = newOp.Attributes
@@ -190,7 +207,7 @@ func (d *Delta) Compose(other Delta) *Delta {
 				if thisOp.Retain != nil {
 					newOp.Retain = &length
 				} else {
-					newOp.Insert = thisOp.Insert
+					newOp.Insert = append([]rune(nil), thisOp.Insert...)
 				}
 				// Preserve null when composing with a retain, otherwise remove it for inserts
 				attributes := AttrCompose(thisOp.Attributes, otherOp.Attributes, thisOp.Retain != nil)
