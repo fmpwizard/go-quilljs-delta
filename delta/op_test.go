@@ -282,9 +282,9 @@ func TestAttrLengthRetain(t *testing.T) {
 	}
 }
 func TestAttrLengthInsert(t *testing.T) {
-	a := "text"
+	a := []rune("text")
 	r := OpsLength(Op{
-		Insert: &a,
+		Insert: a,
 	})
 
 	if r != 4 {

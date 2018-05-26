@@ -108,12 +108,11 @@ func OpsLength(op Op) int {
 	if op.Delete != nil {
 		return *op.Delete
 	}
-
 	if op.Retain != nil {
 		return *op.Retain
 	}
 	if op.Insert != nil {
-		return len([]rune(*op.Insert))
+		return len(op.Insert)
 	}
 
 	return 1

@@ -41,8 +41,8 @@ func TestNext(t *testing.T) {
 	for x := 0; x < len(delta.Ops); x++ {
 		n := iter.Next(math.MaxInt64)
 		nn := delta.Ops[x]
-		if n.Insert != nil && *n.Insert != *nn.Insert {
-			t.Errorf("failed to call Next(), '%+v' diff than '%+v'\n", *n.Insert, *nn.Insert)
+		if n.Insert != nil && len(n.Insert) != len(nn.Insert) {
+			t.Errorf("failed to call Next(), '%+v' diff than '%+v'\n", n.Insert, nn.Insert)
 		}
 		if n.Retain != nil && *n.Retain != *nn.Retain {
 			t.Errorf("failed to call Next(), '%+v' diff than '%+v'\n", *n.Retain, *nn.Retain)
@@ -72,16 +72,16 @@ func TestNext2(t *testing.T) {
 	iter := NewIterator(delta.Ops)
 
 	n := iter.Next(2)
-	if *n.Insert != "He" {
-		t.Error("didn't get 'He', got: ", *n.Insert)
+	if string(n.Insert) != "He" {
+		t.Error("didn't get 'He', got: ", string(n.Insert))
 	}
 	if n.Attributes["bold"] != true {
 		t.Errorf("didn't get correct attr, got: %+v\n", n.Attributes)
 	}
 
 	n = iter.Next(10)
-	if *n.Insert != "llo" {
-		t.Error("didn't get 'llo', got: ", *n.Insert)
+	if string(n.Insert) != "llo" {
+		t.Error("didn't get 'llo', got: ", string(n.Insert))
 	}
 	if n.Attributes["bold"] != true {
 		t.Errorf("didn't get correct attr, got: %+v\n", n.Attributes)
