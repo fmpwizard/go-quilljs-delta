@@ -648,6 +648,27 @@ func TestTransformInsertInsert(t *testing.T) {
 		t.Errorf("expected 'B' but got %+v\n", x2)
 	}
 }
+func TestTransformInsertInsertChinese(t *testing.T) {
+	a1 := New(nil).Insert("你", nil)
+	b1 := New(nil).Insert("好", nil)
+	a2 := New(a1.Ops)
+	b2 := New(b1.Ops)
+	x1 := a1.Transform(*b1, true)
+	if *x1.Ops[0].Retain != 1 {
+		t.Errorf("expected 1 but got %+v\n", x1)
+	}
+	if string(x1.Ops[1].Insert) != "好" {
+		t.Errorf("expected '好' but got %+q\n", x1)
+	}
+
+	x2 := a2.Transform(*b2, false)
+	if len(x2.Ops) != 1 {
+		t.Errorf("expected 1 op but got %+v\n", x2)
+	}
+	if string(x2.Ops[0].Insert) != "好" {
+		t.Errorf("expected '好' but got %q\n", x2)
+	}
+}
 func TestTransformInsertRetain(t *testing.T) {
 	attr1 := make(map[string]interface{})
 	attr1["bold"] = true
@@ -982,6 +1003,20 @@ func TestMarshalJSON2(t *testing.T) {
 }
 func TestMarshalJSON3(t *testing.T) {
 	in := []byte(`{"ops":[{"insert":"diego"},{"retain":11,"attributes":{"bold":true}}]}`)
+	d, err := FromJSON(in)
+	if err != nil {
+		t.Error("failed with ", err)
+	}
+	out, err := json.Marshal(d)
+	if err != nil {
+		t.Error("failed to get json string, err: ", err)
+	}
+	if bytes.Compare(in, out) != 0 {
+		t.Errorf("expected:\n'%+v' but got :\n'%+v'\n", string(in[:]), string(out[:]))
+	}
+}
+func TestMarshalJSON4(t *testing.T) {
+	in := []byte(`{"ops":[{"insert":"你好"},{"retain":2,"attributes":{"bold":true}}]}`)
 	d, err := FromJSON(in)
 	if err != nil {
 		t.Error("failed with ", err)
