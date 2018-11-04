@@ -658,7 +658,7 @@ func TestTransformInsertInsertChinese(t *testing.T) {
 		t.Errorf("expected 1 but got %+v\n", x1)
 	}
 	if string(x1.Ops[1].Insert) != "好" {
-		t.Errorf("expected '好' but got %+q\n", x1)
+		t.Errorf("expected '好' but got %+v\n", x1)
 	}
 
 	x2 := a2.Transform(*b2, false)
@@ -666,7 +666,7 @@ func TestTransformInsertInsertChinese(t *testing.T) {
 		t.Errorf("expected 1 op but got %+v\n", x2)
 	}
 	if string(x2.Ops[0].Insert) != "好" {
-		t.Errorf("expected '好' but got %q\n", x2)
+		t.Errorf("expected '好' but got %+v\n", x2)
 	}
 }
 func TestTransformInsertRetain(t *testing.T) {
@@ -1071,4 +1071,34 @@ func TestDeleteChinese2Char(t *testing.T) {
 	if string(ret.Ops[0].Insert) != expected {
 		t.Errorf("Expected: '%s' but got %+v\n", expected, string(ret.Ops[0].Insert))
 	}
+}
+
+func TestDeltaComposeIssue5(t *testing.T) {
+	text1 := `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin tempus ex at hendrerit pretium. Sed feugiat tempus leo, eu placerat nibh ullamcorper id. In non vulputate sapien. Suspendisse laoreet ultricies elementum. Aliquam magna augue, varius id massa in, sagittis placerat velit. Vestibulum ut mi a erat congue feugiat. Donec sed mauris sed lacus feugiat fermentum. Etiam molestie convallis lorem eget venenatis. Curabitur imperdiet ante maximus eleifend convallis. In fermentum sem a bibendum auctor. Vivamus pharetra quis nibh sed accumsan. Aliquam gravida, justo eget accumsan semper, ex elit sagittis enim, ut consectetur magna est at justo.`
+	text2 := `Quisque sagittis, magna at semper euismod, erat ex viverra velit, a hendrerit augue felis vel nulla. In porta leo ac arcu pharetra, et cursus sapien feugiat. Cras sed facilisis tellus. Vivamus hendrerit posuere condimentum. Curabitur laoreet enim quam, eget porta sem pharetra ut. In eleifend lorem a nulla pulvinar, eu mollis dolor sodales. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.`
+	attr := make(map[string]interface{})
+	attr["align"] = "justify"
+
+	a := New(nil).
+		Insert(text1, nil).
+		Insert("\n", attr).
+		Insert(text2, nil).
+		Insert("\n", attr).
+		Insert("\n", nil)
+
+	b := New(nil).Retain(872, nil).Insert(" bug not happening ", nil)
+
+	x := a.Compose(*b)
+
+	if len(x.Ops) > 0 {
+		t.Errorf("boom1 %+v\n", len(x.Ops))
+	}
+	if string(x.Ops[0].Insert) != text1 {
+		t.Errorf("boom2 %+v\n", x.Ops[0])
+	}
+
+	if string(x.Ops[2].Insert) != text2 {
+		t.Errorf("boom3 %+v\n", string(x.Ops[2].Insert))
+	}
+
 }
