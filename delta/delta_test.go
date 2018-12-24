@@ -658,7 +658,7 @@ func TestTransformInsertInsertChinese(t *testing.T) {
 		t.Errorf("expected 1 but got %+v\n", x1)
 	}
 	if string(x1.Ops[1].Insert) != "好" {
-		t.Errorf("expected '好' but got %+q\n", x1)
+		t.Errorf("expected '好' but got %+v\n", x1)
 	}
 
 	x2 := a2.Transform(*b2, false)
@@ -666,7 +666,7 @@ func TestTransformInsertInsertChinese(t *testing.T) {
 		t.Errorf("expected 1 op but got %+v\n", x2)
 	}
 	if string(x2.Ops[0].Insert) != "好" {
-		t.Errorf("expected '好' but got %q\n", x2)
+		t.Errorf("expected '好' but got %v\n", x2)
 	}
 }
 func TestTransformInsertRetain(t *testing.T) {
