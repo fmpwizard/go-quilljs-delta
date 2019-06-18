@@ -3,6 +3,7 @@ package delta
 import (
 	"bytes"
 	"encoding/json"
+	"math"
 	"reflect"
 	"testing"
 )
@@ -1084,5 +1085,184 @@ func TestDeleteChinese2Char(t *testing.T) {
 	ret := a.Compose(*b)
 	if string(ret.Ops[0].Insert) != expected {
 		t.Errorf("Expected: '%s' but got %+v\n", expected, string(ret.Ops[0].Insert))
+	}
+}
+
+func TestLength(t *testing.T) {
+	a := New(nil).Insert("AB", map[string]interface{}{"bold": true})
+	ret := a.Length()
+	if ret != 2 {
+		t.Errorf("Expected length: 2 but got %d\n", ret)
+	}
+}
+
+func TestLengthMixed(t *testing.T) {
+	a := New(nil).
+		Insert("AB", map[string]interface{}{"bold": true}).
+		Retain(2, map[string]interface{}{"bold": nil}).
+		Delete(1)
+	ret := a.Length()
+	if ret != 5 {
+		t.Errorf("Expected length: 5 but got %d\n", ret)
+	}
+}
+
+func TestSliceStart(t *testing.T) {
+	slice := New(nil).Retain(2, nil).Insert("A", nil).Slice(2, math.MaxInt64)
+	expected := New(nil).Insert("A", nil)
+
+	if !reflect.DeepEqual(slice, expected) {
+		t.Errorf("Wrong slice, got: %+v\n", slice)
+	}
+}
+
+func TestSliceStartAndEndChop(t *testing.T) {
+	slice := New(nil).Insert("0123456789", nil).Slice(2, 7)
+	expected := New(nil).Insert("23456", nil)
+
+	if !reflect.DeepEqual(slice, expected) {
+		t.Errorf("Wrong slice, got: %+v\n", slice)
+	}
+}
+
+func TestSliceStartAndEndMultipleChop(t *testing.T) {
+	slice := New(nil).
+		Insert("0123", map[string]interface{}{"bold": true}).
+		Insert("4567", nil).
+		Slice(3, 5)
+	expected := New(nil).
+		Insert("3", map[string]interface{}{"bold": true}).
+		Insert("4", nil)
+
+	if !reflect.DeepEqual(slice, expected) {
+		t.Errorf("Wrong slice, got: %+v\n", slice)
+	}
+}
+
+func TestSliceStartAndEnd(t *testing.T) {
+	slice := New(nil).
+		Retain(2, nil).
+		Insert("A", map[string]interface{}{"bold": true}).
+		Insert("B", nil).
+		Slice(2, 3)
+	expected := New(nil).Insert("A", map[string]interface{}{"bold": true})
+
+	if !reflect.DeepEqual(slice, expected) {
+		t.Errorf("Wrong slice, got: %+v\n", slice)
+	}
+}
+
+func TestSliceSplitOps(t *testing.T) {
+	slice := New(nil).
+		Insert("AB", map[string]interface{}{"bold": true}).
+		Insert("C", nil).
+		Slice(1, 2)
+	expected := New(nil).Insert("B", map[string]interface{}{"bold": true})
+
+	if !reflect.DeepEqual(slice, expected) {
+		t.Errorf("Wrong slice, got: %+v\n", slice)
+	}
+}
+
+func TestSliceSplitOpsMultipleTimes(t *testing.T) {
+	slice := New(nil).
+		Insert("ABC", map[string]interface{}{"bold": true}).
+		Insert("D", nil).
+		Slice(1, 2)
+	expected := New(nil).Insert("B", map[string]interface{}{"bold": true})
+
+	if !reflect.DeepEqual(slice, expected) {
+		t.Errorf("Wrong slice, got: %+v\n", slice)
+	}
+}
+
+func TestInvertInsert(t *testing.T) {
+	delta := New(nil).Retain(2, nil).Insert("A", nil)
+	base := New(nil).Insert("123456", nil)
+	expected := New(nil).Retain(2, nil).Delete(1)
+	inverted := delta.Invert(base)
+
+	if !reflect.DeepEqual(inverted, expected) {
+		t.Errorf("Wrong inverted delta, got: %+v\n", inverted)
+	}
+	applied := base.Compose(*delta).Compose(*inverted)
+	if !reflect.DeepEqual(applied, base) {
+		t.Errorf("Wrong applied document delta, got: %+v\n", applied)
+	}
+}
+
+func TestInvertDelete(t *testing.T) {
+	delta := New(nil).Retain(2, nil).Delete(3)
+	base := New(nil).Insert("123456", nil)
+	expected := New(nil).Retain(2, nil).Insert("345", nil)
+	inverted := delta.Invert(base)
+
+	if !reflect.DeepEqual(inverted, expected) {
+		t.Errorf("Wrong inverted delta, got: %+v\n", inverted)
+	}
+	applied := base.Compose(*delta).Compose(*inverted)
+	if !reflect.DeepEqual(applied, base) {
+		t.Errorf("Wrong applied document delta, got: %+v\n", applied)
+	}
+}
+
+func TestInvertRetain(t *testing.T) {
+	delta := New(nil).Retain(2, nil).Retain(3, map[string]interface{}{"bold": true})
+	base := New(nil).Insert("123456", nil)
+	expected := New(nil).Retain(2, nil).Retain(3, map[string]interface{}{"bold": nil})
+	inverted := delta.Invert(base)
+
+	if !reflect.DeepEqual(inverted, expected) {
+		t.Errorf("Wrong inverted delta, got: %+v\n", inverted)
+	}
+	applied := base.Compose(*delta).Compose(*inverted)
+	if !reflect.DeepEqual(applied, base) {
+		t.Errorf("Wrong applied document delta, got: %+v\n", applied)
+	}
+}
+
+func TestInvertRetainWithDifferentAttributes(t *testing.T) {
+	base := New(nil).Insert("123", nil).Insert("4", map[string]interface{}{"bold": true})
+	delta := New(nil).Retain(4, map[string]interface{}{"italic": true})
+	expected := New(nil).Retain(4, map[string]interface{}{"italic": nil})
+	inverted := delta.Invert(base)
+
+	if !reflect.DeepEqual(inverted, expected) {
+		t.Errorf("Wrong inverted delta, got: %+v\n", inverted)
+	}
+	applied := base.Compose(*delta).Compose(*inverted)
+	if !reflect.DeepEqual(applied, base) {
+		t.Errorf("Wrong applied document delta, got: %+v\n", applied)
+	}
+}
+
+func TestInvertCombined(t *testing.T) {
+	delta := New(nil).
+		Retain(2, nil).
+		Delete(2).
+		Insert("AB", map[string]interface{}{"italic": true}).
+		Retain(2, map[string]interface{}{"italic": nil, "bold": true}).
+		Retain(2, map[string]interface{}{"color": "red"}).
+		Delete(1)
+	base := New(nil).
+		Insert("123", map[string]interface{}{"bold": true}).
+		Insert("456", map[string]interface{}{"italic": true}).
+		Insert("789", map[string]interface{}{"color": "red", "bold": true})
+	expected := New(nil).
+		Retain(2, nil).
+		Insert("3", map[string]interface{}{"bold": true}).
+		Insert("4", map[string]interface{}{"italic": true}).
+		Delete(2).
+		Retain(2, map[string]interface{}{"italic": true, "bold": nil}).
+		Retain(2, nil).
+		Insert("9", map[string]interface{}{"color": "red", "bold": true})
+	inverted := delta.Invert(base)
+
+	if !reflect.DeepEqual(inverted, expected) {
+		t.Errorf("Wrong inverted delta, got: %+v\n", inverted)
+	}
+	applied := base.Compose(*delta).Compose(*inverted)
+	if !reflect.DeepEqual(applied, base) {
+		t.Errorf("Wrong applied document delta, got: %+v\n", applied)
 	}
 }

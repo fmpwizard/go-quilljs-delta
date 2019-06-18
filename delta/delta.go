@@ -31,6 +31,17 @@ func (o *Op) IsNil() bool {
 		o.Retain == nil
 }
 
+func (o *Op) Length() int {
+	if o.Delete != nil {
+		return *o.Delete
+	} else if o.Retain != nil {
+		return *o.Retain
+	} else if o.Insert != nil {
+		return len(o.Insert)
+	}
+	return 0
+}
+
 // New creates a new Delta with the given ops
 func New(ops []Op) *Delta {
 	return &Delta{
@@ -293,4 +304,57 @@ func (d *Delta) Transform(other Delta, priority bool) *Delta {
 	}
 
 	return delta.Chop()
+}
+
+func (d *Delta) Length() int {
+	length := 0
+	for _, op := range d.Ops {
+		length += op.Length()
+	}
+	return length
+}
+
+func (d *Delta) Slice(start int, end int) *Delta {
+	iter := OpsIterator(d.Ops)
+	delta := New(nil)
+	index := 0
+	for index < end && iter.HasNext() {
+		var nextOp Op
+		if index < start {
+			nextOp = iter.Next(start - index)
+		} else {
+			nextOp = iter.Next(end - index)
+			delta.Push(nextOp)
+		}
+		index += nextOp.Length()
+	}
+	return delta
+}
+
+func (d *Delta) Invert(base *Delta) *Delta {
+	inverted := New(nil)
+	baseIndex := 0
+	for _, op := range d.Ops {
+		if op.Insert != nil {
+			inverted.Delete(op.Length())
+		} else if op.Retain != nil && op.Attributes == nil {
+			inverted.Retain(*op.Retain, nil)
+			baseIndex += *op.Retain
+		} else if op.Retain != nil && op.Attributes != nil {
+			length := *op.Retain
+			slice := base.Slice(baseIndex, baseIndex+length)
+			for _, baseOp := range slice.Ops {
+				inverted.Retain(baseOp.Length(), AttrInvert(op.Attributes, baseOp.Attributes))
+			}
+			baseIndex += length
+		} else if op.Delete != nil {
+			length := *op.Delete
+			slice := base.Slice(baseIndex, baseIndex+length)
+			for _, baseOp := range slice.Ops {
+				inverted.Push(baseOp)
+			}
+			baseIndex += length
+		}
+	}
+	return inverted
 }
