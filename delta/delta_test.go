@@ -503,6 +503,20 @@ func TestDeltaComposeImmutability(t *testing.T) {
 	}
 }
 
+func TestDeltaComposePartialAttributes(t *testing.T) {
+	base := New(nil).Insert("123", nil).Insert("4", map[string]interface{}{"bold": true})
+	delta := New(nil).Retain(4, map[string]interface{}{"italic": true})
+
+	expected := New(nil).
+		Insert("123", map[string]interface{}{"italic": true}).
+		Insert("4", map[string]interface{}{"bold": true, "italic": true})
+
+	applied := base.Compose(*delta)
+	if !reflect.DeepEqual(applied, expected) {
+		t.Errorf("Wrong composed document, got: %+v\n", applied)
+	}
+}
+
 func TestChop(t *testing.T) {
 	x := New(nil).Insert("a", nil).Insert("b", nil).Insert("c", nil).Retain(1, nil)
 	ret := x.Chop()

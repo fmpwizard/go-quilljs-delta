@@ -8,7 +8,9 @@ import (
 func AttrCompose(a, b map[string]interface{}, keepNil bool) map[string]interface{} {
 	attributes := make(map[string]interface{})
 	if b != nil {
-		attributes = b
+		for k, v := range b {
+			attributes[k] = v
+		}
 	}
 
 	for k := range a {
