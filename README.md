@@ -1,3 +1,5 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/fmpwizard/go-quilljs-delta)](https://goreportcard.com/badge/github.com/fmpwizard/go-quilljs-delta)
+
 # go-quilljs-delta
 
 It's a port of QuillJS Delta's repo to Go

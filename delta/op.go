@@ -99,7 +99,7 @@ func OpsIterator(ops []Op) Iterator {
 	return NewIterator(ops)
 }
 
-// OpsLength retuns the length of the string insert, or the numeric value of Delete or Retain
+// OpsLength returns the length of the string insert, or the numeric value of Delete or Retain
 func OpsLength(op Op) int {
 	if op.Delete != nil {
 		return *op.Delete

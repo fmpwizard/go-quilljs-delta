@@ -174,11 +174,11 @@ func (d *Delta) Push(newOp Op) *Delta {
 	if idx == len(d.Ops) {
 		d.Ops = append(d.Ops, newOp)
 	} else {
-		// expand the slice, don't worry about the last element, it will be overriden on the next line
+		// expand the slice, don't worry about the last element, it will be overridden on the next line
 		d.Ops = append(d.Ops, Op{})
 		// copy the min of either src or dst elements from the secon part to the first parameter
 		// see https://www.reddit.com/r/golang/comments/3z91f1/can_someone_explain_inserting_into_a_slice_with/
-		// for mroe info, specialy the playground example
+		// for more info, specially the playground example
 		copy(d.Ops[idx+1:], d.Ops[idx:])
 		// finally, insert our desired element at idx position
 		d.Ops[idx] = newOp
