@@ -291,3 +291,81 @@ func TestAttrLengthInsert(t *testing.T) {
 		t.Error("failed to get length 4 for insert")
 	}
 }
+
+func TestAttrInvertUndefined(t *testing.T) {
+	base := map[string]interface{}{"bold": true}
+
+	if AttrInvert(nil, base) != nil {
+		t.Errorf("Invalid inverted nil map")
+	}
+}
+
+func TestAttrInvertBaseUndefined(t *testing.T) {
+	attr := map[string]interface{}{"bold": true}
+	expected := map[string]interface{}{"bold": nil}
+
+	ret := AttrInvert(attr, nil)
+	if !reflect.DeepEqual(ret, expected) {
+		t.Errorf("Wrong inverted attribute map, got: %+v\n", ret)
+	}
+}
+
+func TestAttrInvertBothUndefined(t *testing.T) {
+	if AttrInvert(nil, nil) != nil {
+		t.Errorf("Invalid inverted nil map")
+	}
+}
+
+func TestAttrInvertMerge(t *testing.T) {
+	attr := map[string]interface{}{"bold": true}
+	base := map[string]interface{}{"italic": true}
+	expected := map[string]interface{}{"bold": nil}
+
+	ret := AttrInvert(attr, base)
+	if !reflect.DeepEqual(ret, expected) {
+		t.Errorf("Wrong inverted attribute map, got: %+v\n", ret)
+	}
+}
+
+func TestAttrInvertNull(t *testing.T) {
+	attr := map[string]interface{}{"bold": nil}
+	base := map[string]interface{}{"bold": true}
+	expected := map[string]interface{}{"bold": true}
+
+	ret := AttrInvert(attr, base)
+	if !reflect.DeepEqual(ret, expected) {
+		t.Errorf("Wrong inverted attribute map, got: %+v\n", ret)
+	}
+}
+
+func TestAttrInvertReplace(t *testing.T) {
+	attr := map[string]interface{}{"color": "red"}
+	base := map[string]interface{}{"color": "blue"}
+	expected := map[string]interface{}{"color": "blue"}
+
+	ret := AttrInvert(attr, base)
+	if !reflect.DeepEqual(ret, expected) {
+		t.Errorf("Wrong inverted attribute map, got: %+v\n", ret)
+	}
+}
+
+func TestAttrInvertNoop(t *testing.T) {
+	attr := map[string]interface{}{"color": "red"}
+	base := map[string]interface{}{"color": "red"}
+
+	ret := AttrInvert(attr, base)
+	if ret != nil {
+		t.Errorf("Wrong inverted attribute map, got: %+v\n", ret)
+	}
+}
+
+func TestAttrInvertCombined(t *testing.T) {
+	attr := map[string]interface{}{"bold": true, "italic": nil, "color": "red", "size": "12px"}
+	base := map[string]interface{}{"font": "serif", "italic": true, "color": "blue", "size": "12px"}
+	expected := map[string]interface{}{"bold": nil, "italic": true, "color": "blue"}
+
+	ret := AttrInvert(attr, base)
+	if !reflect.DeepEqual(ret, expected) {
+		t.Errorf("Wrong inverted attribute map, got: %+v\n", ret)
+	}
+}
