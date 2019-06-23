@@ -1,9 +1,5 @@
 package delta
 
-import (
-//"log"
-)
-
 // AttrCompose takes two attributes maps and composes (combine) them
 func AttrCompose(a, b map[string]interface{}, keepNil bool) map[string]interface{} {
 	attributes := make(map[string]interface{})
