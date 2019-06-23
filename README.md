@@ -1,4 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/fmpwizard/go-quilljs-delta)](https://goreportcard.com/badge/github.com/fmpwizard/go-quilljs-delta)
+[![Go Report Card](https://goreportcard.com/badge/github.com/fmpwizard/go-quilljs-delta)](https://goreportcard.com/report/github.com/fmpwizard/go-quilljs-delta)
 
 # go-quilljs-delta
 
