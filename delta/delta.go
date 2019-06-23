@@ -151,8 +151,7 @@ func (d *Delta) Push(newOp Op) *Delta {
 		}
 		if reflect.DeepEqual(newOp.Attributes, lastOp.Attributes) {
 			if newOp.Insert != nil && lastOp.Insert != nil {
-				mergedText := make([]rune, 0, len(lastOp.Insert)+len(newOp.Insert))
-				mergedText = append(lastOp.Insert, newOp.Insert...)
+				mergedText := append(lastOp.Insert, newOp.Insert...)
 				d.Ops[idx-1] = Op{
 					Insert: mergedText,
 				}

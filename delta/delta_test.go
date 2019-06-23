@@ -924,6 +924,7 @@ func BenchmarkInsert2(t *testing.B) {
 		a.Insert("a", nil)
 	}
 }
+
 func BenchmarkInsert3(t *testing.B) {
 	a := New(nil)
 	for x := 0; x < t.N; x++ {
