@@ -31,6 +31,7 @@ func (o *Op) IsNil() bool {
 		o.Retain == nil
 }
 
+// Length calculates the length of current Op
 func (o *Op) Length() int {
 	if o.Delete != nil {
 		return *o.Delete
@@ -306,6 +307,8 @@ func (d *Delta) Transform(other Delta, priority bool) *Delta {
 	return delta.Chop()
 }
 
+// Length calculates the length of a Delta, whic is the sum of lengths of
+// all its operations
 func (d *Delta) Length() int {
 	length := 0
 	for _, op := range d.Ops {
@@ -314,6 +317,7 @@ func (d *Delta) Length() int {
 	return length
 }
 
+// Slice returns copy of the delta containing the sliced subset of operations
 func (d *Delta) Slice(start int, end int) *Delta {
 	iter := OpsIterator(d.Ops)
 	delta := New(nil)
@@ -331,6 +335,9 @@ func (d *Delta) Slice(start int, end int) *Delta {
 	return delta
 }
 
+// Invert calculates the inverted delta given a base document data, which
+// has the opposite effect when applying. In other words,
+// base.Compose(delta).Compose(inverted) == base
 func (d *Delta) Invert(base *Delta) *Delta {
 	inverted := New(nil)
 	baseIndex := 0

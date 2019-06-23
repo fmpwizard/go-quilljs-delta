@@ -100,7 +100,7 @@ func AttrTransform(a, b map[string]interface{}, priority bool) map[string]interf
 	return nil
 }
 
-// Invert an attribute map, used in Delta.Invert()
+// AttrInvert inverts an attribute map, used in Delta.Invert()
 func AttrInvert(attr map[string]interface{}, base map[string]interface{}) map[string]interface{} {
 	ret := make(map[string]interface{})
 	for k, v := range base {
@@ -117,9 +117,8 @@ func AttrInvert(attr map[string]interface{}, base map[string]interface{}) map[st
 	}
 	if len(ret) == 0 {
 		return nil
-	} else {
-		return ret
 	}
+	return ret
 }
 
 // OpsIterator returns an Iterator wrapping the ops
