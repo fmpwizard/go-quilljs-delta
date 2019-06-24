@@ -84,6 +84,30 @@ func TestInsertAfterDeleteWithMerge(t *testing.T) {
 	}
 }
 
+func TestInsertEmbed(t *testing.T) {
+	n := New(nil).InsertEmbed(map[string]interface{}{"image": "thisisanimage"}, nil)
+	if len(n.Ops) != 1 {
+		t.Errorf("failed to create Delta with insert embeds, got: %+v\n", n.Ops)
+	}
+	if !reflect.DeepEqual(n.Ops[0].InsertEmbed, map[string]interface{}{"image": "thisisanimage"}) {
+		t.Errorf("failed to create Delta with image insert, got: %+v\n", n.Ops[0].InsertEmbed)
+	}
+}
+
+func TestInsertEmbedAttributes(t *testing.T) {
+	n := New(nil).InsertEmbed(map[string]interface{}{"image": "thisisanimage"},
+		map[string]interface{}{"color": "red"})
+	if len(n.Ops) != 1 {
+		t.Errorf("failed to create Delta with insert embeds, got: %+v\n", n.Ops)
+	}
+	if !reflect.DeepEqual(n.Ops[0].InsertEmbed, map[string]interface{}{"image": "thisisanimage"}) {
+		t.Errorf("failed to create Delta with image insert, got: %+v\n", n.Ops[0].InsertEmbed)
+	}
+	if !reflect.DeepEqual(n.Ops[0].Attributes, map[string]interface{}{"color": "red"}) {
+		t.Errorf("failed to create Delta with image insert, got: %+v\n", n.Ops[0].Attributes)
+	}
+}
+
 func TestDelete(t *testing.T) {
 	n := New(nil)
 	n.Delete(0)
@@ -265,6 +289,28 @@ func TestPushMultiRetainNonMathingAttrs(t *testing.T) {
 	}
 	if *n.Ops[1].Retain != 3 {
 		t.Errorf("failed to multi retain without matching attr, expected 3, got: %+v\n", *n.Ops[1].Retain)
+	}
+}
+
+func TestPushConsecutiveEmbedWithMatchingAttributes(t *testing.T) {
+	n := New(nil).InsertEmbed(map[string]interface{}{"url": "quilljs.com"},
+		map[string]interface{}{"alt": "description"})
+	n.Push(Op{
+		InsertEmbed: map[string]interface{}{"url": "www.google.com"},
+		Attributes:  map[string]interface{}{"alt": "description"},
+	})
+	if len(n.Ops) != 2 {
+		t.Errorf("failed to Push({insert: embeds}) to Delta, got: %+v\n", n.Ops)
+	}
+}
+
+func TestPushEmbedWithNonEmbed(t *testing.T) {
+	n := New(nil).InsertEmbed(map[string]interface{}{"url": "quilljs.com"}, nil)
+	n.Push(Op{
+		Insert: []rune("abc"),
+	})
+	if len(n.Ops) != 2 {
+		t.Errorf("failed to Push({insert: 'abc'}) to embed Delta, got: %+v\n", n.Ops)
 	}
 }
 
@@ -511,6 +557,44 @@ func TestDeltaComposePartialAttributes(t *testing.T) {
 	expected := New(nil).
 		Insert("123", map[string]interface{}{"italic": true}).
 		Insert("4", map[string]interface{}{"bold": true, "italic": true})
+
+	applied := base.Compose(*delta)
+	if !reflect.DeepEqual(applied, expected) {
+		t.Errorf("Wrong composed document, got: %+v\n", applied)
+	}
+}
+
+func TestDeltaComposeInsertEmbed(t *testing.T) {
+	base := New(nil).InsertEmbed(map[string]interface{}{"url": "quill.js.com"}, nil)
+	delta := New(nil).Retain(1, map[string]interface{}{"alt": "logo"})
+
+	expected := New(nil).InsertEmbed(map[string]interface{}{"url": "quill.js.com"},
+		map[string]interface{}{"alt": "logo"})
+
+	applied := base.Compose(*delta)
+	if !reflect.DeepEqual(applied, expected) {
+		t.Errorf("Wrong composed document, got: %+v\n", applied)
+	}
+}
+
+func TestDeltaComposeRetainEmptyEmbed(t *testing.T) {
+	base := New(nil).InsertEmbed(map[string]interface{}{"url": "quill.js.com"}, nil)
+	delta := New(nil).Retain(1, nil)
+
+	expected := New(nil).InsertEmbed(map[string]interface{}{"url": "quill.js.com"}, nil)
+
+	applied := base.Compose(*delta)
+	if !reflect.DeepEqual(applied, expected) {
+		t.Errorf("Wrong composed document, got: %+v\n", applied)
+	}
+}
+
+func TestDeltaRemoveEmbedAttributes(t *testing.T) {
+	base := New(nil).InsertEmbed(map[string]interface{}{"url": "quill.js.com"},
+		map[string]interface{}{"bold": true})
+	delta := New(nil).Retain(1, map[string]interface{}{"bold": nil})
+
+	expected := New(nil).InsertEmbed(map[string]interface{}{"url": "quill.js.com"}, nil)
 
 	applied := base.Compose(*delta)
 	if !reflect.DeepEqual(applied, expected) {
@@ -989,6 +1073,16 @@ func TestFromJSON3(t *testing.T) {
 		t.Errorf("expected 'delete 7' but got %+v\n", *d.Ops[1].Delete)
 	}
 }
+func TestFromJSON4(t *testing.T) {
+	in := []byte(`{"ops":[{"insert":{"url":"www.google.com"}}]}`)
+	d, err := FromJSON(in)
+	if err != nil {
+		t.Error("failed with ", err)
+	}
+	if !reflect.DeepEqual(d.Ops[0].InsertEmbed, map[string]interface{}{"url": "www.google.com"}) {
+		t.Errorf("expected 'url: www.google.com' but got %+v\n", d.Ops[0].InsertEmbed)
+	}
+}
 func TestMarshalJSON1(t *testing.T) {
 	in := []byte(`{"ops":[{"retain":8},{"delete":7}]}`)
 	d, err := FromJSON(in)
@@ -1046,6 +1140,20 @@ func TestMarshalJSON4(t *testing.T) {
 	}
 }
 
+func TestMarshalJSON5(t *testing.T) {
+	in := []byte(`{"ops":[{"insert":{"url":"www.google.com"}}]}`)
+	d, err := FromJSON(in)
+	if err != nil {
+		t.Error("failed with ", err)
+	}
+	out, err := json.Marshal(d)
+	if err != nil {
+		t.Error("failed to get json string, err: ", err)
+	}
+	if bytes.Compare(in, out) != 0 {
+		t.Errorf("expected:\n'%+v' but got :\n'%+v'\n", string(in[:]), string(out[:]))
+	}
+}
 func BenchmarkFromJson1(t *testing.B) {
 	in := []byte(`{"ops":[{"retain":35},{"retain":11,"attributes":{"bold":true}}]}`)
 	var delta *Delta
@@ -1105,6 +1213,15 @@ func TestLengthMixed(t *testing.T) {
 	ret := a.Length()
 	if ret != 5 {
 		t.Errorf("Expected length: 5 but got %d\n", ret)
+	}
+}
+
+func TestLengthEmbed(t *testing.T) {
+	a := New(nil).
+		InsertEmbed(map[string]interface{}{"url": "www.google.com"}, nil)
+	ret := a.Length()
+	if ret != 1 {
+		t.Errorf("Expected length: 1 but got %d\n", ret)
 	}
 }
 

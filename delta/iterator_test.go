@@ -8,7 +8,8 @@ import (
 func TestPeekType(t *testing.T) {
 	attr := make(map[string]interface{})
 	attr["bold"] = true
-	delta := New(nil).Insert("Hello", attr).Retain(3, nil).Insert("some link I need to fix", nil).Delete(4)
+	delta := New(nil).Insert("Hello", attr).Retain(3, nil).
+		InsertEmbed(map[string]interface{}{"url": "www.google.com"}, nil).Delete(4)
 
 	iter := NewIterator(delta.Ops)
 	if s := iter.PeekType(); s != "insert" {
@@ -35,7 +36,8 @@ func TestPeekType(t *testing.T) {
 func TestNext(t *testing.T) {
 	attr := make(map[string]interface{})
 	attr["bold"] = true
-	delta := New(nil).Insert("Hello", attr).Retain(3, nil).Insert("some link I need to fix", nil).Delete(4)
+	delta := New(nil).Insert("Hello", attr).Retain(3, nil).
+		InsertEmbed(map[string]interface{}{"url": "www.google.com"}, nil).Delete(4)
 
 	iter := NewIterator(delta.Ops)
 	for x := 0; x < len(delta.Ops); x++ {
@@ -43,6 +45,9 @@ func TestNext(t *testing.T) {
 		nn := delta.Ops[x]
 		if n.Insert != nil && len(n.Insert) != len(nn.Insert) {
 			t.Errorf("failed to call Next(), '%+v' diff than '%+v'\n", n.Insert, nn.Insert)
+		}
+		if n.InsertEmbed != nil && len(n.InsertEmbed) != len(nn.InsertEmbed) {
+			t.Errorf("failed to call Next(), '%+v' diff than '%+v'\n", n.InsertEmbed, nn.InsertEmbed)
 		}
 		if n.Retain != nil && *n.Retain != *nn.Retain {
 			t.Errorf("failed to call Next(), '%+v' diff than '%+v'\n", *n.Retain, *nn.Retain)
@@ -68,7 +73,8 @@ func TestNext(t *testing.T) {
 func TestNext2(t *testing.T) {
 	attr := make(map[string]interface{})
 	attr["bold"] = true
-	delta := New(nil).Insert("Hello", attr).Retain(3, nil).Insert("some link I need to fix", nil).Delete(4)
+	delta := New(nil).Insert("Hello", attr).Retain(3, nil).
+		InsertEmbed(map[string]interface{}{"url": "www.google.com"}, nil).Delete(4)
 	iter := NewIterator(delta.Ops)
 
 	n := iter.Next(2)
@@ -100,7 +106,8 @@ func TestNext2(t *testing.T) {
 func TestHasNext(t *testing.T) {
 	attr := make(map[string]interface{})
 	attr["bold"] = true
-	delta := New(nil).Insert("Hello", attr).Retain(3, nil).Insert("some link I need to fix", nil).Delete(4)
+	delta := New(nil).Insert("Hello", attr).Retain(3, nil).
+		InsertEmbed(map[string]interface{}{"url": "www.google.com"}, nil).Delete(4)
 	iter := NewIterator(delta.Ops)
 
 	if !iter.HasNext() {
@@ -118,7 +125,8 @@ func TestHasNext2(t *testing.T) {
 func TestPeekLength(t *testing.T) {
 	attr := make(map[string]interface{})
 	attr["bold"] = true
-	delta := New(nil).Insert("Hello", attr).Retain(3, nil).Insert("some link I need to fix", nil).Delete(4)
+	delta := New(nil).Insert("Hello", attr).Retain(3, nil).
+		InsertEmbed(map[string]interface{}{"url": "www.google.com"}, nil).Delete(4)
 	iter := NewIterator(delta.Ops)
 
 	if x := iter.PeekLength(); x != 5 {
@@ -130,7 +138,7 @@ func TestPeekLength(t *testing.T) {
 		t.Errorf("expected 3 but got '%d'\n", x)
 	}
 	iter.Next(math.MaxInt64)
-	if x := iter.PeekLength(); x != 23 {
+	if x := iter.PeekLength(); x != 1 {
 		t.Errorf("expected 1 but got '%d'\n", x)
 	}
 	iter.Next(math.MaxInt64)
@@ -142,7 +150,7 @@ func TestPeekLength(t *testing.T) {
 func TestPeekLengthPositiveOffset(t *testing.T) {
 	attr := make(map[string]interface{})
 	attr["bold"] = true
-	delta := New(nil).Insert("Hello", attr).Retain(3, nil).Insert("some link I need to fix", nil).Delete(4)
+	delta := New(nil).Insert("Hello", attr).Retain(3, nil).InsertEmbed(map[string]interface{}{"url": "www.google.com"}, nil).Delete(4)
 	iter := NewIterator(delta.Ops)
 
 	iter.Next(2)

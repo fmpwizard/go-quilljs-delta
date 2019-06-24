@@ -69,6 +69,9 @@ func (x *Iterator) Next(length int) Op {
 		str := (nextOp.Insert)[offset:l]
 		retOp.Insert = str
 	}
+	if nextOp.InsertEmbed != nil {
+		retOp.InsertEmbed = nextOp.InsertEmbed
+	}
 	return retOp
 }
 
@@ -94,7 +97,7 @@ func (x *Iterator) PeekType() string {
 		if x.Ops[x.Index].Retain != nil {
 			return "retain"
 		}
-		if x.Ops[x.Index].Insert != nil {
+		if x.Ops[x.Index].Insert != nil || x.Ops[x.Index].InsertEmbed != nil {
 			return "insert"
 		}
 	}
