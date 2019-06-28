@@ -4,7 +4,7 @@ package delta
 
 import (
 	"encoding/json"
-	//"log"
+	"errors"
 	"math"
 	"reflect"
 )
@@ -14,13 +14,20 @@ type Delta struct {
 	Ops []Op `json:"ops"`
 }
 
+// Embed is the type represending a QuillJs embed object, it should
+// have only one key and only one value.
+type Embed struct {
+	Key   string
+	Value interface{}
+}
+
 // Op is the smallest "operation"
-// TODO: Handle embeds
 type Op struct {
-	Insert     []rune                 `json:"insert,omitempty"`
-	Retain     *int                   `json:"retain,omitempty"`
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
-	Delete     *int                   `json:"delete,omitempty"`
+	Insert      []rune                 `json:"insert,omitempty"`
+	InsertEmbed *Embed                 `json:"-"`
+	Retain      *int                   `json:"retain,omitempty"`
+	Attributes  map[string]interface{} `json:"attributes,omitempty"`
+	Delete      *int                   `json:"delete,omitempty"`
 }
 
 // IsNil tells you if the current Op is a nil operation
@@ -33,14 +40,7 @@ func (o *Op) IsNil() bool {
 
 // Length calculates the length of current Op
 func (o *Op) Length() int {
-	if o.Delete != nil {
-		return *o.Delete
-	} else if o.Retain != nil {
-		return *o.Retain
-	} else if o.Insert != nil {
-		return len(o.Insert)
-	}
-	return 0
+	return OpsLength(*o)
 }
 
 // New creates a new Delta with the given ops
@@ -63,7 +63,7 @@ func FromJSON(in []byte) (*Delta, error) {
 func (o *Op) UnmarshalJSON(data []byte) error {
 	type Alias Op
 	aux := &struct {
-		Insert string `json:"insert"`
+		Insert *json.RawMessage `json:"insert"`
 		*Alias
 	}{
 		Alias: (*Alias)(o),
@@ -71,18 +71,60 @@ func (o *Op) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	o.Insert = []rune(aux.Insert)
+	if aux.Insert != nil {
+		if (*aux.Insert)[0] == '"' {
+			var b string
+			if err := json.Unmarshal(*aux.Insert, &b); err != nil {
+				return err
+			}
+			o.Insert = []rune(b)
+			o.InsertEmbed = nil
+		} else {
+			var m map[string]interface{}
+			if err := json.Unmarshal(*aux.Insert, &m); err != nil {
+				return err
+			}
+			if len(m) != 1 {
+				return errors.New("invalid embed")
+			}
+			var embed Embed
+			// There should be only one key in the map, so this operation should
+			// work without problems
+			for k, v := range m {
+				embed.Key = k
+				embed.Value = v
+			}
+			o.InsertEmbed = &embed
+			o.Insert = nil
+		}
+	}
 	return nil
 }
 
 // MarshalJSON let's us marshal our Insert []rune into a string
 func (o *Op) MarshalJSON() ([]byte, error) {
 	type Alias Op
+	var message *json.RawMessage
+	if o.Insert != nil {
+		b, err := json.Marshal(string(o.Insert))
+		if err != nil {
+			return nil, err
+		}
+		message = (*json.RawMessage)(&b)
+	} else if o.InsertEmbed != nil {
+		m := make(map[string]interface{})
+		m[o.InsertEmbed.Key] = o.InsertEmbed.Value
+		b, err := json.Marshal(m)
+		if err != nil {
+			return nil, err
+		}
+		message = (*json.RawMessage)(&b)
+	}
 	return json.Marshal(&struct {
-		Insert string `json:"insert,omitempty"`
+		Insert *json.RawMessage `json:"insert,omitempty"`
 		*Alias
 	}{
-		Insert: string(o.Insert),
+		Insert: message,
 		Alias:  (*Alias)(o),
 	})
 }
@@ -94,11 +136,22 @@ func (d *Delta) Insert(text string, attrs map[string]interface{}) *Delta {
 		return d
 	}
 	newOp := Op{
-		Insert: []rune(text),
+		Insert:     []rune(text),
+		Attributes: attrs,
 	}
+	d.Push(newOp)
+	return d
+}
 
-	if attrs != nil {
-		newOp.Attributes = attrs
+// InsertEmbed takes a map of embeds and a map of attributes, adds them to the Delta. This
+// can be used to insert images or URLs to the Delta
+func (d *Delta) InsertEmbed(embed Embed, attrs map[string]interface{}) *Delta {
+	if len(embed.Key) == 0 || embed.Value == nil {
+		return d
+	}
+	newOp := Op{
+		InsertEmbed: &embed,
+		Attributes:  attrs,
 	}
 	d.Push(newOp)
 	return d
@@ -231,6 +284,7 @@ func (d *Delta) Compose(other Delta) *Delta {
 					newOp.Retain = &length
 				} else {
 					newOp.Insert = append([]rune(nil), thisOp.Insert...)
+					newOp.InsertEmbed = thisOp.InsertEmbed
 				}
 				// Preserve null when composing with a retain, otherwise remove it for inserts
 				attributes := AttrCompose(thisOp.Attributes, otherOp.Attributes, thisOp.Retain != nil)
@@ -341,7 +395,7 @@ func (d *Delta) Invert(base *Delta) *Delta {
 	inverted := New(nil)
 	baseIndex := 0
 	for _, op := range d.Ops {
-		if op.Insert != nil {
+		if op.Insert != nil || op.InsertEmbed != nil {
 			inverted.Delete(op.Length())
 		} else if op.Retain != nil && op.Attributes == nil {
 			inverted.Retain(*op.Retain, nil)

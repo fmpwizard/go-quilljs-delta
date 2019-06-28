@@ -133,6 +133,9 @@ func OpsLength(op Op) int {
 	if op.Insert != nil {
 		return len(op.Insert)
 	}
+	if op.InsertEmbed != nil {
+		return 1
+	}
 
 	return 1
 }
